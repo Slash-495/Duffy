@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ShipWheelIcon } from 'lucide-react';
 import { Link } from 'react-router'; // Correct import
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-// import axiosInstance from '../lib/axios.js';
-import signup from '../lib/api.js';
+import useSignUp from '../hooks/useSignUp.js';
 
 const themes = [
   "light", "dark", "cupcake", "bumblebee", "emerald", "corporate", "synthwave", "retro", "cyberpunk",
@@ -20,19 +18,7 @@ export default function Signuppage() {
     password: '',
   });
 
-  const queryClient = useQueryClient();
-
-  const { mutate:signUpMutation, isPending, error } = useMutation({
-    mutationFn: signup,
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['authUser'] });
-      console.log("Signup successful:", data);
-      // Add redirect or notification here if needed
-    },
-    onError: (err) => {
-      console.error("Signup failed:", err);
-    },
-  });
+  const {isPending,error,signUpMutation} = useSignUp();
 
   useEffect(() => {
     const randomTheme = themes[Math.floor(Math.random() * themes.length)];
