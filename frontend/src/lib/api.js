@@ -5,18 +5,42 @@ export const signup = async (data)=>{
       return response.data;
 }
 export const login = async (loginData)=>{
-      const response = await axiosInstance.post('/auth/login', loginData);
-      return response.data;
+      try {
+            const response = await axiosInstance.post('/auth/login', loginData);
+            return response.data;
+      } catch (error) {
+            console.error("Login failed:", error);
+            return null; 
+      }
+}
+export const logout = async ()=>{
+      try {
+            const response = await axiosInstance.post('/auth/logout');
+            return response.data;
+      } catch (error) {
+            console.error("Logout failed:", error);
+            return null; 
+      }
 }
 
 export const getAuthUser = async () => {
-      const res = await axiosInstance.get('/auth/me')
-     return res.data 
+      try {
+            const res = await axiosInstance.get('/auth/me')
+           return res.data 
+      } catch (error) {
+            console.error("Failed to fetch authenticated user:", error);
+            return null; 
+      }
     }
 
 export const completeOnboarding = async (userData) => {
-      const response = await axiosInstance.post('/auth/onboarding', userData);
-      return response.data;
+      try {
+            const response = await axiosInstance.post('/auth/onboarding', userData);
+            return response.data;
+      } catch (error) {
+            console.error("Onboarding completion failed:", error);
+            return null;
+      }
 }
 
 
