@@ -36,16 +36,23 @@ const Navbar = () => {
             </Link>
           </div>
 
-          {/* TODO */}
           <ThemeSelector />
 
           <div className="avatar">
-            <div className="w-9 rounded-full">
-              <img src={authUser?.profilePic} alt="User Avatar" rel="noreferrer" />
-            </div>
-          </div>
+          <div className="w-9 rounded-full">
+          <img
+            src={authUser?.profilePic || "../public/default-avatar.jpg"}
+              alt="User Avatar"
+            onError={(e) => {
+              e.target.onerror = null; // Prevent infinite loop
+              e.target.src = "../public/default-avatar.jpg";
+            }}
+              rel="noreferrer"
+            />
+        </div>    
+        </div>
 
-          {/* Logout button */}
+
           <button className="btn btn-ghost btn-circle" onClick={logoutMutation}>
             <LogOutIcon className="h-6 w-6 text-base-content opacity-70" />
           </button>

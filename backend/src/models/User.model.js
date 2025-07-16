@@ -48,7 +48,7 @@ const userSchema = new mongoose.Schema({
   },
 
   isOnboarded: {
-    type: Boolean, // ✅ should be Boolean instead of String
+    type: Boolean, 
     default: false,
   },
 
