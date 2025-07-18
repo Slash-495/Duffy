@@ -8,7 +8,7 @@ const Sidebar = () => {
     const { authUser } = useAuthUser();
     const location = useLocation();
     const currentPath = location.pathname;
-    console.log("Current Path:", currentPath);
+
 
   return (
     <aside className='w-64 bg-base-200 border-r border-base-300 hidden lg:flex flex-col h-screen sticky top-0'>

@@ -98,7 +98,9 @@ const HomePage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {console.log("recommendedUsers:", recommendedUsers)}
               {recommendedUsers.map((user) => {
+                console.log("Rendering user:", user.fullName);
                 const hasRequestBeenSent = outgoingRequestsIds.has(user._id);
 
                 return (

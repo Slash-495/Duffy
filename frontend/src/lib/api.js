@@ -35,8 +35,15 @@ export async function getUserFriends() {
 }
 
 export const getRecommendedUsers = async () => {
-  const res = await axios.get("/users");
-  return res.data;
+  const res = await axiosInstance.get("/users");
+  const users = res.data?.recommendedUsers;
+
+  if (!Array.isArray(users)) {
+    console.error("Expected 'recommendedUsers' to be an array, but got:", users);
+    return []; 
+  }
+
+  return users;
 };
 
 export async function getOutgoingFriendReqs() {
