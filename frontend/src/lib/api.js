@@ -51,12 +51,46 @@ export async function getOutgoingFriendReqs() {
   return response.data;
 }
 
+// export async function sendFriendRequest(userId) {
+//   console.log("Sending friend request to:", userId)
+//   const response = await axiosInstance.post(`/users/friend-request/${userId}`);
+//   return response.data;
+// }
 export async function sendFriendRequest(userId) {
-  const response = await axiosInstance.post(`/users/friend-request/${userId}`);
+  console.log("Sending friend request to:", userId);
+
+  const token = localStorage.getItem("token"); 
+
+  const response = await axiosInstance.post(
+    `/users/friend-request/${userId}`,
+    {}, // no request body
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
   return response.data;
 }
 
 export async function getFriendRequests() {
   const response = await axiosInstance.get("/users/friend-requests");
+  return response.data;
+}
+
+export async function acceptFriendRequest(requestId) {
+  const token = localStorage.getItem("token");
+  console.log("Accepting friend request with ID:", requestId);
+  const response = await axiosInstance.put(
+    `/users/friend-request/${requestId}/accept`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
   return response.data;
 }

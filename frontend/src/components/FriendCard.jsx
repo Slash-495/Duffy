@@ -8,11 +8,20 @@ const FriendCard = ({ friend }) => {
         {/* USER INFO */}
         <div className="flex items-center gap-3 mb-3">
           <div className="avatar size-12">
-            <img src={friend.profilePic} alt={friend.fullName} />
+            <img
+            src={friend.profilePic || "/default-avatar.jpg"}
+            alt={friend.fullName}
+            onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = "/default-avatar.png";
+            }}
+            className="rounded-full w-full h-full object-cover"
+          />
+
           </div>
           <h3 className="font-semibold truncate">{friend.fullName}</h3>
         </div>
-
+            {/* {console.log(friend.nativeLanguage, friend.learningLanguage)} */}
         <div className="flex flex-wrap gap-1.5 mb-3">
           <span className="badge badge-secondary text-xs">
             {getLanguageFlag(friend.nativeLanguage)}

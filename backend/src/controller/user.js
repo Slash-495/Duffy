@@ -25,7 +25,7 @@ export async function  getRecommendedUsers(req,res){
 export async function  getMyFriends(req,res){
     try {
         const user = await User.findById(req.user.id).select("friends")
-        .populate("friends","fullName , profilePic, nativeLanguage, learningLanguage");
+        .populate("friends","fullName  profilePic nativeLanguage learningLanguage");
 
         res.status(200).json(user.friends)
     } catch (error) {
@@ -107,23 +107,36 @@ export async function acceptFriendRequest(req,res){
     }
 }
 
-export async function getFriendRequests(req,res){
-    try {
-        const incomingReqs = await FriendRequest.find({
-            recipient : req.user.id,
-            status: "pending",
-        }).populate("sender","fullName profilePic nativeLanguage learningLanguage");
+export async function getFriendRequests(req, res) {
+  try {
+    const incomingReqs = await FriendRequest.find({
+      recipient: req.user.id,
+      status: "pending",
+    }).populate("sender", "fullName profilePic nativeLanguage learningLanguage");
 
-        const acceptedReqs = await FriendRequest.find({
-            recipient : req.user.id,
-            status: "accepted",
-        }).populate("sender","fullName profilePic");
+    const acceptedReqsRaw = await FriendRequest.find({
+      $or: [
+        { recipient: req.user.id },
+        { sender: req.user.id },
+      ],
+      status: "accepted",
+    })
+      .populate("sender", "fullName profilePic nativeLanguage learningLanguage")
+      .populate("recipient", "fullName profilePic nativeLanguage learningLanguage");
+    console.log("Accepted Requests Raw: ", JSON.stringify(acceptedReqsRaw, null, 2));
+    const acceptedReqs = acceptedReqsRaw.map((req) => {
+      const isSender = req.sender._id.toString() === req.user.id.toString();
+      return isSender ? req.recipient : req.sender;
+    });
 
-        res.status(200).json(incomingReqs,acceptedReqs);
-    } catch (error) {
-        res.status(400).json({message: "get Friend Requests User Controller Error"})
-        console.log("Error in getFriendRequest controller",error.message);
-    }
+    res.status(200).json({
+      incomingReqs,
+      acceptedReqs,
+    });
+  } catch (error) {
+    console.log("Error in getFriendRequest controller", error.message);
+    res.status(400).json({ message: "get Friend Requests User Controller Error" });
+  }
 }
 
 export async function getoutgoingFriendReq(req,res){

@@ -5,7 +5,7 @@ import cookieParser from "cookie-parser"
 import cors from "cors";
 import authRoutes from "./routes/auth.js"
 import userRoutes from "./routes/user.js"
-import chatRoutes from "./routes/chat.js    "
+import chatRoutes from "./routes/chat.js"
 import { connectDB } from "./lib/db.js";
 
 
