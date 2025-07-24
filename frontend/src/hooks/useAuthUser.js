@@ -12,4 +12,4 @@ const useAuthUser = () => {
      return {isLoading: authUser.isLoading, authUser: authUser.data?.user, error: authUser.error}
 }
 
-export default useAuthUser
+export default useAuthUser;

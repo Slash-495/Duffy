@@ -4,7 +4,6 @@ import User from "../models/User.model.js";
 export const protectRoute = async (req, res, next) => {
   try {
     // Try getting token from cookies
-    console.log("🔐 protectRoute middleware triggered")
     let token = req.cookies?.jwt;
 
     // Or try from Authorization header
