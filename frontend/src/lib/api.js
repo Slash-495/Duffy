@@ -106,3 +106,58 @@ export async function getStreamToken() {
   const response = await axiosInstance.get("/chat/token");
   return response.data;
 }
+
+// ----------------------------------------------------
+// Decks & Flashcards API
+// ----------------------------------------------------
+
+export const getDecks = async () => {
+  const response = await axiosInstance.get("/decks");
+  return response.data;
+};
+
+export const createDeck = async (deckData) => {
+  const response = await axiosInstance.post("/decks", deckData);
+  return response.data;
+};
+
+export const getDeckById = async (deckId) => {
+  const response = await axiosInstance.get(`/decks/${deckId}`);
+  return response.data;
+};
+
+export const deleteDeck = async (deckId) => {
+  const response = await axiosInstance.delete(`/decks/${deckId}`);
+  return response.data;
+};
+
+export const createFlashcard = async (cardData) => {
+  const response = await axiosInstance.post("/flashcards", cardData);
+  return response.data;
+};
+
+export const updateFlashcard = async (cardId, cardData) => {
+  const response = await axiosInstance.put(`/flashcards/${cardId}`, cardData);
+  return response.data;
+};
+
+export const deleteFlashcard = async (cardId) => {
+  const response = await axiosInstance.delete(`/flashcards/${cardId}`);
+  return response.data;
+};
+
+export const getDueCards = async (deckId) => {
+  const url = deckId ? `/review/due?deckId=${deckId}` : "/review/due";
+  const response = await axiosInstance.get(url);
+  return response.data;
+};
+
+export const submitReview = async (cardId, quality) => {
+  const response = await axiosInstance.post(`/review/${cardId}`, { quality });
+  return response.data;
+};
+
+export const importFlashcards = async (deckId, cards) => {
+  const response = await axiosInstance.post("/flashcards/import", { deckId, cards });
+  return response.data;
+};

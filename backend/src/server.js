@@ -6,6 +6,9 @@ import cors from "cors";
 import authRoutes from "./routes/auth.js"
 import userRoutes from "./routes/user.js"
 import chatRoutes from "./routes/chat.js"
+import deckRoutes from "./routes/decks.js";
+import flashcardRoutes from "./routes/flashcards.js";
+import reviewRoutes from "./routes/review.js";
 import { connectDB } from "./lib/db.js";
 import path from "path";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";

@@ -2,7 +2,7 @@ import React from 'react'
 import useAuthUser from '../hooks/useAuthUser'
 import { useLocation } from 'react-router';
 import { Link } from 'react-router';
-import { ShipWheelIcon,HomeIcon,UsersIcon, BellIcon } from 'lucide-react';
+import { ShipWheelIcon,HomeIcon,UsersIcon, BellIcon, BookOpenIcon } from 'lucide-react';
 import ProfileCompletion from './ProfileCompletion';
 
 const Sidebar = () => {
@@ -49,6 +49,15 @@ const Sidebar = () => {
         >
           <BellIcon className="size-5 text-base-content opacity-70" />
           <span>Notifications</span>
+        </Link>
+        <Link
+          to="/flashcards"
+          className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case ${
+            currentPath.startsWith("/flashcards") ? "btn-active" : ""
+          }`}
+        >
+          <BookOpenIcon className="size-5 text-base-content opacity-70" />
+          <span>Flashcards</span>
         </Link>
       </nav>
       </div>

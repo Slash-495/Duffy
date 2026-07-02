@@ -7,6 +7,8 @@ import { getStreamToken } from '../lib/api.js';
 import { StreamChat } from 'stream-chat';
 import ChatLoader from '../components/ChatLoader.jsx';
 import CallButton from '../components/CallButton.jsx';
+import SaveFromChatModal from '../components/SaveFromChatModal.jsx';
+import { BookOpenIcon } from 'lucide-react';
 import {
   Channel,
   ChannelHeader,
@@ -23,23 +25,25 @@ const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
 
 const Chatpage = () => {
   const {id:targetUserId} = useParams();
-  // console.log("Chatpage ID:", targetUserId);
   const [chatClient, setChatClient] = useState(null);
   const [channel, setChannel] = useState(null);
   const[loading, setLoading] = useState(true);
+
+  // Flashcards Modal State
+  const [isFlashcardModalOpen, setIsFlashcardModalOpen] = useState(false);
+  const [selectedMessageText, setSelectedMessageText] = useState("");
 
   const {authUser} = useAuthUser();
   const {data:tokenData} = useQuery({
     queryKey: ["streamToken"],
     queryFn: () => getStreamToken(),
-    enabled: !!authUser, // Only run this query if authUser is available
+    enabled: !!authUser,
     })
 
     useEffect(()=>{
       const initChat = async () => {
         if(!tokenData?.token || !authUser) return;
         try {
-          console.log("Initializing chat client with token:", tokenData.token);
           const client = StreamChat.getInstance(STREAM_API_KEY);
 
           await client.connectUser(
@@ -50,7 +54,7 @@ const Chatpage = () => {
             },
             tokenData.token
           )
-          const channelId = [authUser._id, targetUserId].sort().join("--"); // just to make sure a proper format of channel ID : [myId,yourId]
+          const channelId = [authUser._id, targetUserId].sort().join("--"); 
           
           const currChanel = client.channel("messaging", channelId, {
             members : [authUser._id, targetUserId],
@@ -59,7 +63,6 @@ const Chatpage = () => {
           setChatClient(client);
           setChannel(currChanel);
         } catch (error) {
-          console.log("Error initializing chat client:", error);
           toast.error("Failed to initialize chat. Please try again later.");
         }
         finally {
@@ -79,6 +82,13 @@ const handleVideoCall = () => {
   }
 }
 
+  const customMessageActions = {
+    'Save to Flashcards': (message) => {
+      setSelectedMessageText(message.text);
+      setIsFlashcardModalOpen(true);
+    },
+  };
+
   if(loading || !chatClient || !channel) {
     return <ChatLoader /> }
   return (
@@ -89,13 +99,21 @@ const handleVideoCall = () => {
               <CallButton handleVideoCall={handleVideoCall}/>
               <Window>
                 <ChannelHeader />
-                <MessageList />
+                <MessageList 
+                  customMessageActions={customMessageActions}
+                />
                 <MessageInput focus/>
               </Window>
             </div>
             <Thread />
             </Channel>
       </Chat>
+      
+      <SaveFromChatModal 
+        isOpen={isFlashcardModalOpen} 
+        onClose={() => setIsFlashcardModalOpen(false)} 
+        initialText={selectedMessageText}
+      />
     </div>
   )
 }

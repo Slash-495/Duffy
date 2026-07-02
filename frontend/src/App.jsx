@@ -6,6 +6,7 @@ import Notificationspage from './pages/Notificationspage'
 import Onboardingpage from './pages/Onboardingpage'
 import Chatpage from './pages/Chatpage'
 import Callpage from './pages/Callpage'
+import FlashcardsPage from './pages/FlashcardsPage'
 import { Toaster } from 'react-hot-toast'
 import PageLoader from './components/PageLoader'
 import useAuthUser from './hooks/useAuthUser'
@@ -56,6 +57,11 @@ const App = () => {
             <Navigate to ={!isAuthenticated ? "/login" : "/onboarding"} />
           )
         } />
+        <Route path='/flashcards' element={isAuthenticated && isOnboarded ? (
+          <Layout showSidebar={true}>
+            <FlashcardsPage />
+          </Layout>
+        ) : (<Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />)} />
       </Routes>
       <Toaster />
     </div>
