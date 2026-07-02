@@ -34,8 +34,15 @@ export async function getUserFriends() {
   return response.data;
 }
 
-export const getRecommendedUsers = async () => {
-  const res = await axiosInstance.get("/users");
+export const getRecommendedUsers = async (filters = {}) => {
+  const params = new URLSearchParams();
+  
+  if (filters.search) params.append("search", filters.search);
+  if (filters.nativeLanguage) params.append("nativeLanguage", filters.nativeLanguage);
+  if (filters.learningLanguage) params.append("learningLanguage", filters.learningLanguage);
+  if (filters.location) params.append("location", filters.location);
+
+  const res = await axiosInstance.get(`/users?${params.toString()}`);
   const users = res.data?.recommendedUsers;
 
   if (!Array.isArray(users)) {

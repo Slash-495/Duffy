@@ -8,6 +8,7 @@ import userRoutes from "./routes/user.js"
 import chatRoutes from "./routes/chat.js"
 import { connectDB } from "./lib/db.js";
 import path from "path";
+import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 
 
 const app = express();
@@ -19,18 +20,24 @@ console.log("NODE_ENV:", process.env.NODE_ENV);
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-    origin: process.env.CLIENT_URL,
+    origin: process.env.CLIENT_URL || process.env.CLIENT_URI,
     credentials: true, // Allow credentials (cookies, authorization headers, etc.)
 }));    
+
 app.use("/api/auth",authRoutes)
 app.use("/api/users",userRoutes)
 app.use("/api/chat",chatRoutes)
 
 
-app.use(express.static(path.join(__dirname, "../frontend/dist")));
-app.get("*",(req,res)=>{
-    res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
-})
+if (process.env.NODE_ENV !== "production") {
+    app.use(express.static(path.join(__dirname, "../frontend/dist")));
+    app.get("*",(req,res)=>{
+        res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
+    })
+}
+
+app.use(notFound);
+app.use(errorHandler);
 
 app.listen(PORT,()=>{
     console.log(`Server is running on Port ${PORT}`);

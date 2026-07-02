@@ -3,6 +3,7 @@ import useAuthUser from '../hooks/useAuthUser'
 import { useLocation } from 'react-router';
 import { Link } from 'react-router';
 import { ShipWheelIcon,HomeIcon,UsersIcon, BellIcon } from 'lucide-react';
+import ProfileCompletion from './ProfileCompletion';
 
 const Sidebar = () => {
     const { authUser } = useAuthUser();
@@ -51,6 +52,11 @@ const Sidebar = () => {
         </Link>
       </nav>
       </div>
+
+      <div className="px-4 mt-4">
+        <ProfileCompletion />
+      </div>
+
       {/* USER PROFILE SECTION */}
       <div className="p-4 border-t border-base-300 mt-auto">
         <div className="flex items-center gap-3">

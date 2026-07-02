@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { acceptFriendRequest, getFriendRequests } from "../lib/api";
 import { BellIcon, ClockIcon, MessageSquareIcon, UserCheckIcon } from "lucide-react";
-import NoNotificationsFound from "../components/NoNotificationsFound";
+import EmptyState from "../components/EmptyState";
 
 const NotificationsPage = () => {
   const queryClient = useQueryClient();
@@ -123,7 +123,11 @@ const NotificationsPage = () => {
             )}
 
             {incomingRequests.length === 0 && acceptedRequests.length === 0 && (
-              <NoNotificationsFound />
+              <EmptyState 
+                icon="notifications" 
+                title="No notifications yet" 
+                description="When you receive friend requests or messages, they'll appear here." 
+              />
             )}
           </>
         )}

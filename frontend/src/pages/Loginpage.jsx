@@ -1,35 +1,25 @@
-import React, { use } from 'react'
+import React from 'react'
 import { useState } from 'react';
 import { ShipWheelIcon } from 'lucide-react';
 import { Link } from 'react-router';
-import { useEffect } from 'react';
 import useLogin from '../hooks/useLogin.js';
-
-const themes = [
-  "light", "dark", "cupcake", "bumblebee", "emerald", "corporate", "synthwave", "retro", "cyberpunk",
-  "valentine", "halloween", "garden", "forest", "aqua", "lofi", "pastel", "fantasy", "wireframe",
-  "black", "luxury", "dracula", "cmyk", "autumn", "business", "acid", "lemonade", "night", "coffee",
-  "winter", "dim", "nord", "sunset",
-];
+import AuthImagePattern from '../components/AuthImagePattern.jsx';
+import { useThemeStore } from '../store/useThemeStore.js';
 
 const Loginpage = () => {
-  const [theme, setTheme] = useState('coffee');
+  const { theme } = useThemeStore();
   const [loginData, setLoginData] = useState({
     email: '',
     password: ''
   });
 
-  const {isPending,error, loginMutation} = useLogin();
-
-    useEffect(() => {
-    const randomTheme = themes[Math.floor(Math.random() * themes.length)];
-    setTheme(randomTheme);
-  }, []);
+  const { isPending, error, loginMutation } = useLogin();
 
   const handleLogin = (e) => {
     e.preventDefault();
     loginMutation(loginData);
   }
+
   return (
     <div
       className="h-screen flex items-center justify-center p-4 sm:p-6 md:p-8"
@@ -41,7 +31,7 @@ const Loginpage = () => {
           {/* LOGO */}
           <div className="mb-4 flex items-center justify-start gap-2">
             <ShipWheelIcon className="size-9 text-primary" />
-            <span className="text-3xl font-bold font-mono bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary  tracking-wider">
+            <span className="text-3xl font-bold font-mono bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary tracking-wider">
               Duffy
             </span>
           </div>
@@ -49,7 +39,7 @@ const Loginpage = () => {
           {/* ERROR MESSAGE DISPLAY */}
           {error && (
             <div className="alert alert-error mb-4">
-              <span>{error.response.data.message}</span>
+              <span>{error.response?.data?.message || error.message || "An error occurred"}</span>
             </div>
           )}
 
@@ -118,24 +108,13 @@ const Loginpage = () => {
         </div>
 
         {/* IMAGE SECTION */}
-        <div className="hidden lg:flex w-full lg:w-1/2 bg-primary/10 items-center justify-center">
-          <div className="max-w-md p-8">
-            {/* Illustration */}
-            <div className="relative aspect-square max-w-sm mx-auto">
-              <img src="/i.png" alt="Language connection illustration" className="w-full h-full" />
-            </div>
-
-            <div className="text-center space-y-3 mt-6">
-              <h2 className="text-xl font-semibold">Connect with language partners worldwide</h2>
-              <p className="opacity-70">
-                Practice conversations, make friends, and improve your language skills together
-              </p>
-            </div>
-          </div>
-        </div>
+        <AuthImagePattern 
+          title="Connect with language partners worldwide"
+          subtitle="Practice conversations, make friends, and improve your language skills together"
+        />
       </div>
     </div>
   );
 }
 
-export default Loginpage
+export default Loginpage;

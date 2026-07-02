@@ -46,7 +46,22 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: "Unknown",
   },
-
+  timezone: {
+    type: String,
+    default: "",
+  },
+  age: {
+    type: Number,
+    default: null,
+  },
+  interests: {
+    type: [String],
+    default: [],
+  },
+  learningGoals: {
+    type: String,
+    default: "",
+  },
   isOnboarded: {
     type: Boolean, 
     default: false,

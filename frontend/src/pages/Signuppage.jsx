@@ -1,33 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { ShipWheelIcon } from 'lucide-react';
-import { Link } from 'react-router'; // Correct import
+import { Link } from 'react-router'; 
 import useSignUp from '../hooks/useSignUp.js';
-
-const themes = [
-  "light", "dark", "cupcake", "bumblebee", "emerald", "corporate", "synthwave", "retro", "cyberpunk",
-  "valentine", "halloween", "garden", "forest", "aqua", "lofi", "pastel", "fantasy", "wireframe",
-  "black", "luxury", "dracula", "cmyk", "autumn", "business", "acid", "lemonade", "night", "coffee",
-  "winter", "dim", "nord", "sunset",
-];
+import AuthImagePattern from '../components/AuthImagePattern.jsx';
+import { useThemeStore } from '../store/useThemeStore.js';
 
 export default function Signuppage() {
-  const [theme, setTheme] = useState('coffee');
+  const { theme } = useThemeStore();
   const [signupData, setsignupData] = useState({
     fullName: '',
     email: '',
     password: '',
   });
 
-  const {isPending,error,signUpMutation} = useSignUp();
-
-  useEffect(() => {
-    const randomTheme = themes[Math.floor(Math.random() * themes.length)];
-    setTheme(randomTheme);
-  }, []);
+  const { isPending, error, signUpMutation } = useSignUp();
 
   const handleSignUp = (e) => {
     e.preventDefault();
-   signUpMutation(signupData);
+    signUpMutation(signupData);
   };
 
   return (
@@ -59,7 +49,7 @@ export default function Signuppage() {
                     d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <span>{error.response.data.message}</span>
+                <span>{error.response?.data?.message || error.message || "An error occurred"}</span>
               </div>
             </div>
           )}
@@ -141,11 +131,15 @@ export default function Signuppage() {
                 </div>
 
                 {/* Submit Button */}
-                <button className="btn btn-primary w-full" type="submit">
+                <button className="btn btn-primary w-full" type="submit" disabled={isPending}>
                   {isPending ? (
-                    <span className="loading loading-spinner loading-sm">'Loading...'</span>
-                  )
-                    : 'Create Account'}
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      Loading...
+                    </>
+                  ) : (
+                    'Create Account'
+                  )}
                 </button>
 
                 {/* Already have an account */}
@@ -161,19 +155,10 @@ export default function Signuppage() {
         </div>
 
         {/* Right side image */}
-        <div className="hidden lg:flex w-full lg:w-1/2 bg-primary/10 items-center justify-center">
-          <div className="max-w-md p-8">
-            <div className="relative aspect-square max-w-sm mx-auto">
-              <img src="/i.png" alt="Language connection illustration" className="w-full h-full" />
-            </div>
-            <div className="text-center space-y-3 mt-6">
-              <h2 className="text-xl font-semibold">Connect with language partners worldwide</h2>
-              <p className="opacity-70">
-                Practice conversations, make friends, and improve your language skills together
-              </p>
-            </div>
-          </div>
-        </div>
+        <AuthImagePattern 
+          title="Connect with language partners worldwide"
+          subtitle="Practice conversations, make friends, and improve your language skills together"
+        />
       </div>
     </div>
   );
