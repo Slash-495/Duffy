@@ -8,7 +8,9 @@ import { StreamChat } from 'stream-chat';
 import ChatLoader from '../components/ChatLoader.jsx';
 import CallButton from '../components/CallButton.jsx';
 import SaveFromChatModal from '../components/SaveFromChatModal.jsx';
-import { BookOpenIcon } from 'lucide-react';
+import AISidebar from '../components/ai/AISidebar.jsx';
+import useAIStore from '../store/useAIStore.js';
+import { BookOpenIcon, SparklesIcon } from 'lucide-react';
 import {
   Channel,
   ChannelHeader,
@@ -29,9 +31,10 @@ const Chatpage = () => {
   const [channel, setChannel] = useState(null);
   const[loading, setLoading] = useState(true);
 
-  // Flashcards Modal State
+  // Flashcards & AI State
   const [isFlashcardModalOpen, setIsFlashcardModalOpen] = useState(false);
   const [selectedMessageText, setSelectedMessageText] = useState("");
+  const { isSidebarOpen, setSidebarOpen, setActiveTab } = useAIStore();
 
   const {authUser} = useAuthUser();
   const {data:tokenData} = useQuery({
@@ -87,16 +90,35 @@ const handleVideoCall = () => {
       setSelectedMessageText(message.text);
       setIsFlashcardModalOpen(true);
     },
+    'Explain Message': (message) => {
+      setSelectedMessageText(message.text);
+      setActiveTab('suggestions');
+    },
+    'Translate': (message) => {
+      setSelectedMessageText(message.text);
+      setActiveTab('translation');
+    }
   };
 
   if(loading || !chatClient || !channel) {
     return <ChatLoader /> }
   return (
-    <div className="h-[93vh]">
+    <div className="h-[93vh] flex">
+      {/* Stream Chat Area */}
+      <div className="flex-1 flex flex-col relative h-full">
         <Chat client={chatClient}>
           <Channel channel={channel}>
-            <div className='w-full relative'>
-              <CallButton handleVideoCall={handleVideoCall}/>
+            <div className='w-full relative h-full flex flex-col'>
+              <div className="flex justify-between items-center absolute top-2 right-16 z-10 gap-2">
+                <button 
+                  className="btn btn-sm btn-primary shadow-lg"
+                  onClick={() => setSidebarOpen(!isSidebarOpen)}
+                >
+                  <SparklesIcon className="size-4 mr-1" />
+                  AI Copilot
+                </button>
+                <CallButton handleVideoCall={handleVideoCall}/>
+              </div>
               <Window>
                 <ChannelHeader />
                 <MessageList 
@@ -106,8 +128,12 @@ const handleVideoCall = () => {
               </Window>
             </div>
             <Thread />
-            </Channel>
-      </Chat>
+          </Channel>
+        </Chat>
+      </div>
+
+      {/* AI Sidebar Area */}
+      <AISidebar selectedMessage={selectedMessageText} />
       
       <SaveFromChatModal 
         isOpen={isFlashcardModalOpen} 

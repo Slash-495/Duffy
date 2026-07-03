@@ -9,6 +9,7 @@ import chatRoutes from "./routes/chat.js"
 import deckRoutes from "./routes/decks.js";
 import flashcardRoutes from "./routes/flashcards.js";
 import reviewRoutes from "./routes/review.js";
+import aiRoutes from "./routes/ai.js";
 import { connectDB } from "./lib/db.js";
 import path from "path";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
@@ -33,6 +34,7 @@ app.use("/api/chat",chatRoutes)
 app.use("/api/decks", deckRoutes)
 app.use("/api/flashcards", flashcardRoutes)
 app.use("/api/review", reviewRoutes)
+app.use("/api/ai", aiRoutes)
 
 
 if (process.env.NODE_ENV !== "production") {
