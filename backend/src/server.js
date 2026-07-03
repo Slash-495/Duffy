@@ -30,6 +30,9 @@ app.use(cors({
 app.use("/api/auth",authRoutes)
 app.use("/api/users",userRoutes)
 app.use("/api/chat",chatRoutes)
+app.use("/api/decks", deckRoutes)
+app.use("/api/flashcards", flashcardRoutes)
+app.use("/api/review", reviewRoutes)
 
 
 if (process.env.NODE_ENV !== "production") {

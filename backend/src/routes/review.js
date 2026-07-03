@@ -1,6 +1,6 @@
 import express from "express";
 import { getDueCards, submitReview } from "../controller/review.js";
-import { protectRoute } from "../middleware/authMiddleware.js";
+import { protectRoute } from "../middleware/auth.js";
 
 const router = express.Router();
 

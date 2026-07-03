@@ -5,7 +5,7 @@ import {
   deleteFlashcard,
   bulkImportFlashcards,
 } from "../controller/flashcards.js";
-import { protectRoute } from "../middleware/authMiddleware.js";
+import { protectRoute } from "../middleware/auth.js";
 
 const router = express.Router();
 

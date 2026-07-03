@@ -6,7 +6,7 @@ import {
   updateDeck,
   deleteDeck,
 } from "../controller/decks.js";
-import { protectRoute } from "../middleware/authMiddleware.js";
+import { protectRoute } from "../middleware/auth.js";
 
 const router = express.Router();
 
