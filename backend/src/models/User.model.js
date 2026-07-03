@@ -67,13 +67,29 @@ const userSchema = new mongoose.Schema({
     default: false,
   },
 
-  friends: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User"
+    friends: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    role: {
+      type: String,
+      enum: ["USER", "PREMIUM", "TEACHER", "ADMIN"],
+      default: "USER"
+    },
+    privacy: {
+      showActivity: { type: Boolean, default: true },
+      showOnlineStatus: { type: Boolean, default: true },
+      allowFriendRequests: { type: Boolean, default: true }
+    },
+    preferences: {
+      emailNotifications: { type: Boolean, default: true },
+      pushNotifications: { type: Boolean, default: true }
     }
-  ]
-},{timestamps:true});
+  },
+  { timestamps: true }
+);
 //createdAt, updatedAt
 
 //prehook
