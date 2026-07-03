@@ -11,7 +11,10 @@ const TeacherDashboard = () => {
   // Mock Data for Classrooms
   const [classrooms, setClassrooms] = useState([
     { id: 'c1', name: "Spanish 101 - Fall 2026", students: 24, joinCode: "XJ92K1", nextAssignment: "Present Tense Verbs" },
-    { id: 'c2', name: "Advanced Japanese", students: 12, joinCode: "JLPTN2", nextAssignment: "Keigo Practice Roleplay" }
+    { id: 'c2', name: "Advanced Japanese", students: 12, joinCode: "JLPTN2", nextAssignment: "Keigo Practice Roleplay" },
+    { id: 'c3', name: "French for Beginners", students: 45, joinCode: "FR2026", nextAssignment: "Basic Greetings Quiz" },
+    { id: 'c4', name: "German B2 Prep", students: 8, joinCode: "GERB2P", nextAssignment: "Ordering at a Restaurant" },
+    { id: 'c5', name: "Business Mandarin", students: 18, joinCode: "ZHBIZ1", nextAssignment: "Negotiation Vocabulary" }
   ]);
 
   const handleCreateClass = (e) => {
@@ -47,19 +50,20 @@ const TeacherDashboard = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {classrooms.map(cls => (
-          <div key={cls.id} className="bg-base-100 rounded-3xl p-6 shadow-sm border border-base-200 hover:border-primary transition-colors group relative overflow-hidden">
+          <div 
+            key={cls.id} 
+            onClick={() => navigate(`/teacher/${cls.id}`)}
+            className="bg-base-100 rounded-3xl p-6 shadow-sm border border-base-200 hover:border-primary transition-colors group relative overflow-hidden cursor-pointer"
+          >
             <div className="absolute top-0 right-0 p-4 opacity-5">
               <BookOpenIcon className="size-32" />
             </div>
             
             <div className="flex justify-between items-start mb-6">
               <span className="badge badge-lg bg-base-200 font-mono font-bold tracking-widest">{cls.joinCode}</span>
-              <button 
-                onClick={() => navigate(`/teacher/${cls.id}`)}
-                className="btn btn-circle btn-ghost btn-sm text-base-content/50 group-hover:text-primary"
-              >
+              <div className="btn btn-circle btn-ghost btn-sm text-base-content/50 group-hover:text-primary">
                 <ExternalLinkIcon className="size-5" />
-              </button>
+              </div>
             </div>
             
             <h2 className="text-2xl font-bold mb-2 group-hover:text-primary transition-colors">{cls.name}</h2>

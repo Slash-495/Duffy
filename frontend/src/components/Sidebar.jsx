@@ -2,7 +2,7 @@ import React from 'react'
 import useAuthUser from '../hooks/useAuthUser'
 import { useLocation } from 'react-router';
 import { Link } from 'react-router';
-import { ShipWheelIcon,HomeIcon,UsersIcon, BellIcon, BookOpenIcon, TrophyIcon, MicIcon, GraduationCapIcon } from 'lucide-react';
+import { ShipWheelIcon,HomeIcon,UsersIcon, BellIcon, BookOpenIcon, TrophyIcon, MicIcon, GraduationCapIcon, SettingsIcon, SparklesIcon } from 'lucide-react';
 import ProfileCompletion from './ProfileCompletion';
 
 const Sidebar = () => {
@@ -13,14 +13,17 @@ const Sidebar = () => {
 
   return (
     <aside className='w-64 bg-base-200 border-r border-base-300 hidden lg:flex flex-col h-screen sticky top-0'>
-        <div className="p-5 border-b border-base-300">
+        <div className="p-5 border-b border-base-300 shrink-0">
         <Link to="/" className="flex items-center gap-2.5">
           <ShipWheelIcon className="size-9 text-primary" />
           <span className="text-3xl font-bold font-mono bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary  tracking-wider">
             Duffy
           </span>
         </Link>
-        <nav className="flex-1 p-4 space-y-1">
+        </div>
+        
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <nav className="p-4 space-y-1">
         <Link
           to="/"
           className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case ${
@@ -91,36 +94,40 @@ const Sidebar = () => {
           </Link>
         )}
       </nav>
-      </div>
-
-      <div className="px-4 mt-4">
+      
+      <div className="px-4 mt-4 mb-4">
         <ProfileCompletion />
+      </div>
       </div>
 
       {/* USER PROFILE SECTION */}
-      <div className="p-4 border-t border-base-300 mt-auto">
-        <div className="flex items-center gap-3">
-          <div className="avatar">
-            <div className="w-10 rounded-full">
-              <img
-                src={authUser?.profilePic || "../public/default-avatar.jpg"}
+      <div className="p-4 border-t border-base-300 shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="avatar">
+              <div className="w-10 rounded-full cursor-pointer hover:ring-2 hover:ring-primary transition-all" onClick={() => window.location.href = '/settings'}>
+                <img
+                  src={authUser?.profilePic || "../public/default-avatar.jpg"}
                   alt="User Avatar"
-                onError={(e) => {
-                  e.target.onerror = null; // Prevent infinite loop
-                  e.target.src = "../public/default-avatar.jpg";
-              }}
-              rel="noreferrer"
-            />
+                  onError={(e) => {
+                    e.target.onerror = null; 
+                    e.target.src = "../public/default-avatar.jpg";
+                  }}
+                  rel="noreferrer"
+                />
+              </div>
+            </div>
+            {/* USER INFO */}
+            <div className="flex-1">
+              <p className="font-semibold text-sm truncate max-w-[100px]">{authUser?.fullName}</p>
+              <Link to="/premium" className="text-xs text-secondary font-bold hover:underline flex items-center gap-1">
+                <SparklesIcon className="size-3" /> Upgrade
+              </Link>
             </div>
           </div>
-          {/* USER INFO */}
-          <div className="flex-1">
-            <p className="font-semibold text-sm">{authUser?.fullName}</p>
-            <p className="text-xs text-success flex items-center gap-1">
-              <span className="size-2 rounded-full bg-success inline-block" />
-              Online
-            </p>
-          </div>
+          <Link to="/settings" className="btn btn-ghost btn-circle btn-sm text-base-content/60 hover:text-primary">
+            <SettingsIcon className="size-5" />
+          </Link>
         </div>
       </div>
     </aside>

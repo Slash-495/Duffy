@@ -13,6 +13,9 @@ import RoleplayHub from './pages/RoleplayHub'
 import RoleplaySession from './pages/RoleplaySession'
 import TeacherDashboard from './pages/TeacherDashboard'
 import ClassroomView from './pages/ClassroomView'
+import SettingsPage from './pages/SettingsPage'
+import PremiumPage from './pages/PremiumPage'
+import FriendsPage from './pages/FriendsPage'
 import AICoach from './pages/AICoach'
 import { Toaster } from 'react-hot-toast'
 import PageLoader from './components/PageLoader'
@@ -102,6 +105,21 @@ const App = () => {
         <Route path='/teacher/:id' element={isAuthenticated && isOnboarded ? (
           <Layout showSidebar={true}>
             <ClassroomView />
+          </Layout>
+        ) : (<Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />)} />
+        <Route path='/settings' element={isAuthenticated && isOnboarded ? (
+          <Layout showSidebar={true}>
+            <SettingsPage />
+          </Layout>
+        ) : (<Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />)} />
+        <Route path='/premium' element={isAuthenticated && isOnboarded ? (
+          <Layout showSidebar={true}>
+            <PremiumPage />
+          </Layout>
+        ) : (<Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />)} />
+        <Route path='/friends' element={isAuthenticated && isOnboarded ? (
+          <Layout showSidebar={true}>
+            <FriendsPage />
           </Layout>
         ) : (<Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />)} />
       </Routes>

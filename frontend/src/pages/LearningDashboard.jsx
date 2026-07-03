@@ -55,7 +55,7 @@ const LearningDashboard = () => {
   if (showPronunciation) {
     return (
       <div className="p-6 max-w-6xl mx-auto min-h-screen flex items-center justify-center">
-        <PronunciationCard data={mockVoiceData} onClose={() => setShowPronunciation(false)} />
+        <PronunciationCard initialData={mockVoiceData} onClose={() => setShowPronunciation(false)} />
       </div>
     );
   }

@@ -16,10 +16,47 @@ const RoleplaySession = () => {
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [messages, setMessages] = useState([
     { id: 1, role: 'system', content: scenario?.systemPrompt || "Scenario Started." },
     { id: 2, role: 'ai', content: scenario?.firstMessage || "Hello." }
   ]);
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+
+  if (recognition) {
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    // Set language based on the target language if we had it, defaulting to English for the UI
+    recognition.lang = 'en-US'; 
+  }
+
+  const toggleListen = () => {
+    if (!recognition) {
+      alert("Speech recognition is not supported in this browser. Please use Chrome or Edge.");
+      return;
+    }
+    if (isListening) {
+      recognition.stop();
+      setIsListening(false);
+    } else {
+      recognition.start();
+      setIsListening(true);
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(prev => prev + (prev ? " " : "") + transcript);
+        setIsListening(false);
+      };
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListening(false);
+      };
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -132,12 +169,16 @@ const RoleplaySession = () => {
       {/* Input Area */}
       <div className="bg-base-200 rounded-b-3xl p-4 border-t border-base-300">
         <form onSubmit={handleSend} className="flex items-center gap-2">
-          <button type="button" className="btn btn-circle btn-ghost text-base-content/70 hover:text-primary">
+          <button 
+            type="button" 
+            onClick={toggleListen}
+            className={`btn btn-circle ${isListening ? 'btn-error animate-pulse' : 'btn-ghost text-base-content/70 hover:text-primary'}`}
+          >
             <MicIcon className="size-5" />
           </button>
           <input
             type="text"
-            placeholder="Type your response..."
+            placeholder={isListening ? "Listening..." : "Type your response..."}
             className="input input-bordered w-full bg-base-100 rounded-full"
             value={input}
             onChange={(e) => setInput(e.target.value)}
