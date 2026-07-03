@@ -66,3 +66,21 @@ export const streamExplanation = asyncHandler(async (req, res) => {
     res.end();
   }
 });
+
+export const roleplayTurn = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { history, targetLanguage = 'English', cefrLevel = 'Intermediate' } = req.body;
+    
+    // Convert history format to the simple text string the RoleplayService expects
+    // Note: RoleplayService uses the GrammarService provider for now
+    const { RoleplayService } = await import("../services/learning/RoleplayService.js");
+    
+    const response = await RoleplayService.processTurn(userId, history, targetLanguage, cefrLevel);
+    
+    res.json(response);
+  } catch (error) {
+    console.error("Error in roleplayTurn:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

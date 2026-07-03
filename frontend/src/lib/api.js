@@ -5,6 +5,16 @@ export const signup = async (signupData) => {
   return response.data;
 };
 
+export const startLesson = async (topic) => {
+  const response = await axiosInstance.post("/learning/lesson/start", { topic });
+  return response.data;
+};
+
+export const playRoleplayTurn = async (history) => {
+  const response = await axiosInstance.post("/ai/roleplay/turn", { history });
+  return response.data;
+};
+
 export const login = async (loginData) => {
   const response = await axiosInstance.post("/auth/login", loginData);
   return response.data;

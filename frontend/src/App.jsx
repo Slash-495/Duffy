@@ -9,6 +9,8 @@ import Callpage from './pages/Callpage'
 import FlashcardsPage from './pages/FlashcardsPage'
 import LeaderboardPage from './pages/LeaderboardPage'
 import LearningDashboard from './pages/LearningDashboard'
+import RoleplayHub from './pages/RoleplayHub'
+import RoleplaySession from './pages/RoleplaySession'
 import AICoach from './pages/AICoach'
 import { Toaster } from 'react-hot-toast'
 import PageLoader from './components/PageLoader'
@@ -75,7 +77,17 @@ const App = () => {
             <LearningDashboard />
           </Layout>
         ) : (<Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />)} />
-        <Route path='/aicoach' element={isAuthenticated && isOnboarded ? (
+        <Route path='/roleplay' element={isAuthenticated && isOnboarded ? (
+          <Layout showSidebar={true}>
+            <RoleplayHub />
+          </Layout>
+        ) : (<Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />)} />
+        <Route path='/roleplay/:id' element={isAuthenticated && isOnboarded ? (
+          <Layout showSidebar={false}>
+            <RoleplaySession />
+          </Layout>
+        ) : (<Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />)} />
+        <Route path='/ai-coach' element={isAuthenticated && isOnboarded ? (
           <Layout showSidebar={true}>
             <AICoach />
           </Layout>

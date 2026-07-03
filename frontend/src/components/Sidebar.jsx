@@ -2,7 +2,7 @@ import React from 'react'
 import useAuthUser from '../hooks/useAuthUser'
 import { useLocation } from 'react-router';
 import { Link } from 'react-router';
-import { ShipWheelIcon,HomeIcon,UsersIcon, BellIcon, BookOpenIcon, TrophyIcon } from 'lucide-react';
+import { ShipWheelIcon,HomeIcon,UsersIcon, BellIcon, BookOpenIcon, TrophyIcon, MicIcon } from 'lucide-react';
 import ProfileCompletion from './ProfileCompletion';
 
 const Sidebar = () => {
@@ -67,6 +67,15 @@ const Sidebar = () => {
         >
           <TrophyIcon className="size-5 text-base-content opacity-70" />
           <span>Leaderboard</span>
+        </Link>
+        <Link
+          to="/roleplay"
+          className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case ${
+            currentPath.startsWith("/roleplay") ? "btn-active" : ""
+          }`}
+        >
+          <MicIcon className="size-5 text-base-content opacity-70" />
+          <span>Roleplay</span>
         </Link>
       </nav>
       </div>
