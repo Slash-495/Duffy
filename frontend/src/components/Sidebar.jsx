@@ -2,7 +2,7 @@ import React from 'react'
 import useAuthUser from '../hooks/useAuthUser'
 import { useLocation } from 'react-router';
 import { Link } from 'react-router';
-import { ShipWheelIcon,HomeIcon,UsersIcon, BellIcon, BookOpenIcon, TrophyIcon, MicIcon } from 'lucide-react';
+import { ShipWheelIcon,HomeIcon,UsersIcon, BellIcon, BookOpenIcon, TrophyIcon, MicIcon, GraduationCapIcon } from 'lucide-react';
 import ProfileCompletion from './ProfileCompletion';
 
 const Sidebar = () => {
@@ -77,6 +77,19 @@ const Sidebar = () => {
           <MicIcon className="size-5 text-base-content opacity-70" />
           <span>Roleplay</span>
         </Link>
+        
+        {/* Teacher Hub Link - Only visible to TEACHER or ADMIN, mocked here for demonstration */}
+        {(authUser?.role === 'TEACHER' || authUser?.role === 'ADMIN' || true) && (
+          <Link
+            to="/teacher"
+            className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case ${
+              currentPath.startsWith("/teacher") ? "btn-active" : ""
+            }`}
+          >
+            <GraduationCapIcon className="size-5 text-base-content opacity-70" />
+            <span>Teacher Hub</span>
+          </Link>
+        )}
       </nav>
       </div>
 
