@@ -14,6 +14,7 @@ import { capitialize } from "../lib/utils";
 import FriendCard, { getLanguageFlag } from "../components/FriendCard";
 import EmptyState from "../components/EmptyState";
 import { LANGUAGES } from "../constants/index.js";
+import ActivityFeed from "../components/ActivityFeed";
 
 // Custom hook for debounced value
 function useDebounce(value, delay) {
@@ -96,8 +97,11 @@ const HomePage = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="container mx-auto space-y-10">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="container mx-auto grid grid-cols-1 xl:grid-cols-4 gap-8">
+        
+        {/* Main Content Column */}
+        <div className="xl:col-span-3 space-y-10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Your Friends</h2>
           <Link to="/notifications" className="btn btn-outline btn-sm">
             <UsersIcon className="mr-2 size-4" />
@@ -270,6 +274,13 @@ const HomePage = () => {
             </div>
           )}
         </section>
+        </div> {/* End Main Content Column */}
+
+        {/* Right Sidebar - Activity Feed */}
+        <div className="hidden xl:block">
+          <ActivityFeed />
+        </div>
+
       </div>
     </div>
   );

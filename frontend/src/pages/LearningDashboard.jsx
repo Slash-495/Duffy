@@ -88,6 +88,28 @@ const LearningDashboard = () => {
               <p className="opacity-60 py-4">You have completed all standard lessons for your level! Talk to the AI coach to generate custom lessons.</p>
             )}
           </div>
+
+          <h2 className="text-xl font-bold flex items-center gap-2 mt-8"><MapIcon /> Trending Community Decks</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Mock Community Decks */}
+            <div className="bg-base-100 rounded-2xl shadow-sm p-5 border border-base-200 hover:border-primary transition-colors cursor-pointer group">
+              <h3 className="font-bold text-lg group-hover:text-primary transition-colors">JLPT N5 Vocabulary</h3>
+              <p className="text-sm opacity-60 mt-1">1,200 downloads • By Yuki</p>
+              <div className="flex justify-between items-center mt-4">
+                <span className="badge badge-sm badge-outline">Japanese</span>
+                <button className="btn btn-primary btn-xs">Add to Collection</button>
+              </div>
+            </div>
+            
+            <div className="bg-base-100 rounded-2xl shadow-sm p-5 border border-base-200 hover:border-primary transition-colors cursor-pointer group">
+              <h3 className="font-bold text-lg group-hover:text-primary transition-colors">Business English Idioms</h3>
+              <p className="text-sm opacity-60 mt-1">850 downloads • By Sarah</p>
+              <div className="flex justify-between items-center mt-4">
+                <span className="badge badge-sm badge-outline">English</span>
+                <button className="btn btn-primary btn-xs">Add to Collection</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Missions & Quizzes Column */}
