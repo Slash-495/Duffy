@@ -51,13 +51,13 @@ const Sidebar = () => {
           <span>Notifications</span>
         </Link>
         <Link
-          to="/flashcards"
+          to="/learning"
           className={`btn btn-ghost justify-start w-full gap-3 px-3 normal-case ${
-            currentPath.startsWith("/flashcards") ? "btn-active" : ""
+            currentPath.startsWith("/learning") ? "btn-active" : ""
           }`}
         >
           <BookOpenIcon className="size-5 text-base-content opacity-70" />
-          <span>Flashcards</span>
+          <span>Learning Hub</span>
         </Link>
       </nav>
       </div>

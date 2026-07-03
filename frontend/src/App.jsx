@@ -7,6 +7,8 @@ import Onboardingpage from './pages/Onboardingpage'
 import Chatpage from './pages/Chatpage'
 import Callpage from './pages/Callpage'
 import FlashcardsPage from './pages/FlashcardsPage'
+import LearningDashboard from './pages/LearningDashboard'
+import AICoach from './pages/AICoach'
 import { Toaster } from 'react-hot-toast'
 import PageLoader from './components/PageLoader'
 import useAuthUser from './hooks/useAuthUser'
@@ -60,6 +62,16 @@ const App = () => {
         <Route path='/flashcards' element={isAuthenticated && isOnboarded ? (
           <Layout showSidebar={true}>
             <FlashcardsPage />
+          </Layout>
+        ) : (<Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />)} />
+        <Route path='/learning' element={isAuthenticated && isOnboarded ? (
+          <Layout showSidebar={true}>
+            <LearningDashboard />
+          </Layout>
+        ) : (<Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />)} />
+        <Route path='/aicoach' element={isAuthenticated && isOnboarded ? (
+          <Layout showSidebar={true}>
+            <AICoach />
           </Layout>
         ) : (<Navigate to={!isAuthenticated ? "/login" : "/onboarding"} />)} />
       </Routes>
