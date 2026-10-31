@@ -1,45 +1,67 @@
 import { getAIProvider } from "../ai/GrammarService.js";
-import { FeatureFlagService } from "../premium/FeatureFlagService.js";
+
+const CEFR_GUIDANCE = {
+  A1: "Use very short, simple sentences, high-frequency everyday words, and present tense.",
+  A2: "Use simple connectors, everyday vocabulary, and clear past/present structures.",
+  B1: "Use natural conversational phrasing with moderate idioms and varied tenses.",
+  B2: "Use fluent, idiomatic phrasing suitable for workplace or social discussions.",
+  C1: "Use nuanced, sophisticated vocabulary, subtle idioms, and complex sentence structures.",
+  C2: "Speak at full native speed and complexity with cultural idioms and register shifts.",
+};
 
 export class RoleplayService {
-  /**
-   * Generates the opening prompt for a roleplay scenario (e.g. "At the Airport").
-   * Enforces feature flags for AI API usage.
-   */
-  static async startScenario(userId, scenario, targetLanguage, cefrLevel) {
-    const limits = await FeatureFlagService.getUserLimits(userId);
-    // In production, we'd check actual usage count against limits.maxDailyAICalls
-    
+  static async startScenario(userId, scenario, targetLanguage = "English", cefrLevel = "A2") {
     const provider = getAIProvider();
-    
-    const systemPrompt = `You are a native ${targetLanguage} speaker playing a role in a roleplay scenario. 
-The scenario is: ${scenario}. 
-The user's CEFR level is ${cefrLevel}. Adjust your vocabulary and grammar complexity accordingly.
-Start the conversation. Be brief, natural, and stay in character. Do not break character.`;
+    const guidance = CEFR_GUIDANCE[cefrLevel] || CEFR_GUIDANCE.B1;
 
-    const rawResponse = await provider.generateText("Start the scenario.", { systemPrompt, model: "gemini-2.5-flash" });
+    const systemPrompt = `You are a native ${targetLanguage} speaker playing a role in a roleplay scenario.
+Scenario: ${scenario}.
+Learner CEFR proficiency: ${cefrLevel}. ${guidance}
+Start the conversation briefly and naturally while staying strictly in character.`;
+
+    const rawResponse = await provider.generateText("Start the scenario.", {
+      systemPrompt,
+      model: "gemini-2.5-flash",
+    });
     return {
       message: rawResponse,
-      role: "ai"
+      role: "ai",
     };
   }
 
   /**
-   * Processes the user's response and generates the next turn in the roleplay.
+   * Processes the user's response and generates the next turn adapted to their CEFR level.
    */
-  static async processTurn(userId, conversationHistory, targetLanguage, cefrLevel) {
+  static async processTurn(
+    userId,
+    conversationHistory,
+    targetLanguage = "English",
+    cefrLevel = "B1",
+    scenario = ""
+  ) {
     const provider = getAIProvider();
-    const systemPrompt = `You are continuing a roleplay scenario in ${targetLanguage}. 
-The user is at a ${cefrLevel} level. Respond naturally to the user's last message, keeping the conversation going.
-Do not break character. Keep it brief (1-3 sentences).`;
+    const normalizedCefr = String(cefrLevel || "B1").toUpperCase();
+    const guidance =
+      CEFR_GUIDANCE[normalizedCefr] ||
+      `Match a ${cefrLevel} learner's vocabulary and grammar level.`;
 
-    // Convert history to a string for the prompt
-    const historyText = conversationHistory.map(msg => `${msg.role}: ${msg.text}`).join('\n');
+    const systemPrompt = `You are continuing an immersive roleplay in ${targetLanguage}${
+      scenario ? ` (Scenario: ${scenario})` : ""
+    }.
+Learner proficiency: ${cefrLevel}. ${guidance}
+Respond naturally to the user's last message in ${targetLanguage}. Do not break character. Keep it concise (1-3 sentences).`;
 
-    const rawResponse = await provider.generateText(`History:\n${historyText}\n\nRespond to the last user message.`, { systemPrompt, model: "gemini-2.5-flash" });
+    const historyText = (conversationHistory || [])
+      .map((msg) => `${msg.role}: ${msg.text}`)
+      .join("\n");
+
+    const rawResponse = await provider.generateText(
+      `History:\n${historyText}\n\nRespond to the last user message.`,
+      { systemPrompt, model: "gemini-2.5-flash" }
+    );
     return {
       message: rawResponse,
-      role: "ai"
+      role: "ai",
     };
   }
 }

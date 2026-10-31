@@ -7,21 +7,27 @@ const FriendCard = ({ friend }) => {
       <div className="card-body p-4">
         {/* USER INFO */}
         <div className="flex items-center gap-3 mb-3">
-          <div className="avatar size-12">
-            <img
-            src={friend.profilePic || "/default-avatar.jpg"}
-            alt={friend.fullName}
-            onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = "/default-avatar.png";
-            }}
-            className="rounded-full w-full h-full object-cover"
-          />
-
+          <div className={`avatar ${friend.isOnline ? "online" : "offline"}`}>
+            <div className="size-12 rounded-full">
+              <img
+                src={friend.profilePic || "/default-avatar.jpg"}
+                alt={friend.fullName}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "/default-avatar.jpg";
+                }}
+                className="rounded-full w-full h-full object-cover"
+              />
+            </div>
           </div>
-          <h3 className="font-semibold truncate">{friend.fullName}</h3>
+          <div className="min-w-0">
+            <h3 className="font-semibold truncate">{friend.fullName}</h3>
+            <span className="text-xs opacity-60">
+              {friend.isOnline ? "Online" : "Offline"}
+            </span>
+          </div>
         </div>
-            {/* {console.log(friend.nativeLanguage, friend.learningLanguage)} */}
+
         <div className="flex flex-wrap gap-1.5 mb-3">
           <span className="badge badge-secondary text-xs">
             {getLanguageFlag(friend.nativeLanguage)}

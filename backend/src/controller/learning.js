@@ -6,7 +6,8 @@ import { QuizEngine } from "../services/learning/QuizEngine.js";
 // @desc    Get user's learning profile (XP, streaks)
 // @route   GET /api/learning/profile
 export const getLearningProfile = asyncHandler(async (req, res) => {
-  const profile = await AnalyticsEngine.getProfile(req.user._id);
+  const { data: profile, hit } = await AnalyticsEngine.getProfileWithCacheMeta(req.user._id);
+  res.setHeader("X-Cache", hit ? "HIT" : "MISS");
   res.status(200).json(profile);
 });
 
@@ -22,9 +23,10 @@ export const awardXP = asyncHandler(async (req, res) => {
 // @route   GET /api/learning/roadmap
 export const getRoadmap = asyncHandler(async (req, res) => {
   const profile = await AnalyticsEngine.getProfile(req.user._id);
-  const roadmap = await LearningEngine.getRoadmap(profile.currentCEFR);
+  const { data: roadmap, hit } = await LearningEngine.getRoadmapWithCacheMeta(profile.currentCEFR);
   const missions = LearningEngine.generateDailyMissions();
-  
+
+  res.setHeader("X-Cache", hit ? "HIT" : "MISS");
   res.status(200).json({ roadmap, missions });
 });
 
@@ -32,6 +34,7 @@ export const getRoadmap = asyncHandler(async (req, res) => {
 // @route   POST /api/learning/quiz
 export const generateQuiz = asyncHandler(async (req, res) => {
   const { topic, targetLanguage } = req.body;
-  const quiz = await QuizEngine.generateQuiz(topic, targetLanguage);
+  const { data: quiz, hit } = await QuizEngine.generateQuizWithCacheMeta(topic, targetLanguage);
+  res.setHeader("X-Cache", hit ? "HIT" : "MISS");
   res.status(200).json(quiz);
 });

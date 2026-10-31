@@ -32,8 +32,9 @@ const leaderboardSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Compound index for fast querying of leaderboards
-leaderboardSchema.index({ period: 1, periodKey: 1, xpEarned: -1 });
+// Compound indexes for unique user-period upserts and fast leaderboard sorting
+leaderboardSchema.index({ userId: 1, period: 1, periodKey: 1 }, { unique: true });
+leaderboardSchema.index({ period: 1, periodKey: 1, xpEarned: -1, userId: 1 });
 
 const Leaderboard = mongoose.model("Leaderboard", leaderboardSchema);
 export default Leaderboard;

@@ -1,17 +1,32 @@
 import Flashcard from "../models/Flashcard.js";
 import Deck from "../models/Deck.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
+import { cacheDel } from "../lib/cache.js";
+import { decksCacheKey } from "./decks.js";
 
 // @desc    Create a new flashcard
 // @route   POST /api/flashcards
 export const createFlashcard = asyncHandler(async (req, res) => {
-  const { deckId, word, meaning, language, translation, exampleSentence, pronunciation, ipa, difficulty, partOfSpeech, tags, notes, source } = req.body;
+  const {
+    deckId,
+    word,
+    meaning,
+    language,
+    translation,
+    exampleSentence,
+    pronunciation,
+    ipa,
+    difficulty,
+    partOfSpeech,
+    tags,
+    notes,
+    source,
+  } = req.body;
 
   if (!deckId || !word || !meaning || !language) {
     return res.status(400).json({ message: "Deck ID, language, word, and meaning are required" });
   }
 
-  // Verify deck belongs to user
   const deck = await Deck.findOne({ _id: deckId, userId: req.user.id });
   if (!deck) {
     return res.status(404).json({ message: "Deck not found" });
@@ -34,8 +49,10 @@ export const createFlashcard = asyncHandler(async (req, res) => {
     source,
   });
 
-  // Update deck stats
-  await Deck.findByIdAndUpdate(deckId, { $inc: { "stats.totalCards": 1 } });
+  await Deck.findByIdAndUpdate(deckId, {
+    $inc: { "stats.totalCards": 1, "stats.dueCards": 1 },
+  });
+  await cacheDel(decksCacheKey(req.user.id));
 
   res.status(201).json(card);
 });
@@ -43,9 +60,8 @@ export const createFlashcard = asyncHandler(async (req, res) => {
 // @desc    Update a flashcard
 // @route   PUT /api/flashcards/:id
 export const updateFlashcard = asyncHandler(async (req, res) => {
-  const updates = req.body;
-  
-  // Prevent updating sensitive SRS fields directly through this endpoint
+  const updates = { ...req.body };
+
   delete updates.easeFactor;
   delete updates.interval;
   delete updates.nextReviewDate;
@@ -60,6 +76,8 @@ export const updateFlashcard = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "Flashcard not found" });
   }
 
+  await cacheDel(decksCacheKey(req.user.id));
+
   res.status(200).json(card);
 });
 
@@ -72,10 +90,16 @@ export const deleteFlashcard = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "Flashcard not found" });
   }
 
+  const wasDue = !card.nextReviewDate || new Date(card.nextReviewDate) <= new Date();
   await card.deleteOne();
-  
-  // Update deck stats
-  await Deck.findByIdAndUpdate(card.deckId, { $inc: { "stats.totalCards": -1 } });
+
+  const incUpdate = { "stats.totalCards": -1 };
+  if (wasDue && (await Deck.exists({ _id: card.deckId, "stats.dueCards": { $gt: 0 } }))) {
+    incUpdate["stats.dueCards"] = -1;
+  }
+
+  await Deck.findByIdAndUpdate(card.deckId, { $inc: incUpdate });
+  await cacheDel(decksCacheKey(req.user.id));
 
   res.status(200).json({ message: "Flashcard deleted successfully" });
 });
@@ -94,7 +118,7 @@ export const bulkImportFlashcards = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "Deck not found" });
   }
 
-  const newCards = cards.map(card => ({
+  const newCards = cards.map((card) => ({
     ...card,
     userId: req.user.id,
     deckId: deck._id,
@@ -103,8 +127,13 @@ export const bulkImportFlashcards = asyncHandler(async (req, res) => {
 
   const inserted = await Flashcard.insertMany(newCards);
 
-  // Update deck stats
-  await Deck.findByIdAndUpdate(deckId, { $inc: { "stats.totalCards": inserted.length } });
+  await Deck.findByIdAndUpdate(deckId, {
+    $inc: { "stats.totalCards": inserted.length, "stats.dueCards": inserted.length },
+  });
+  await cacheDel(decksCacheKey(req.user.id));
 
-  res.status(201).json({ message: `Successfully imported ${inserted.length} cards`, count: inserted.length });
+  res.status(201).json({
+    message: `Successfully imported ${inserted.length} cards`,
+    count: inserted.length,
+  });
 });

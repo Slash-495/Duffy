@@ -20,6 +20,7 @@ import AICoach from './pages/AICoach'
 import { Toaster } from 'react-hot-toast'
 import PageLoader from './components/PageLoader'
 import useAuthUser from './hooks/useAuthUser'
+import usePresenceHeartbeat from './hooks/usePresenceHeartbeat'
 import Layout from './components/Layout'
 import { useThemeStore } from './store/useThemeStore'
 
@@ -30,6 +31,8 @@ const App = () => {
      const {theme} = useThemeStore();
      const isAuthenticated = Boolean(authUser)
      const isOnboarded = authUser?.isOnboarded
+
+     usePresenceHeartbeat(isAuthenticated)
 
      if (isLoading) {
       return (

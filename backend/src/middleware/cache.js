@@ -1,43 +1,34 @@
+import { cacheGet, cacheSet } from "../lib/cache.js";
+
 /**
- * Cache Middleware Scaffold
- * In a production environment with millions of users, this would wrap a Redis client (e.g. `redis` or `ioredis`).
- * For local development/scaffolding, we use a simple in-memory Map.
+ * Express GET response cache-aside middleware backed by Redis.
+ * Scopes keys per authenticated user (unless options.isPublic is true)
+ * and falls through transparently when Redis is unavailable.
  */
-
-const memoryCache = new Map();
-
-export const cacheMiddleware = (durationSeconds) => {
-  return (req, res, next) => {
-    // Only cache GET requests
-    if (req.method !== 'GET') {
+export const cacheMiddleware = (durationSeconds = 300, options = {}) => {
+  return async (req, res, next) => {
+    if (req.method !== "GET") {
       return next();
     }
 
-    const key = `__express__${req.originalUrl || req.url}`;
-    const cachedBody = memoryCache.get(key);
+    const scope = options.isPublic ? "public" : req.user?._id?.toString() || "anon";
+    const prefix = options.keyPrefix || "http";
+    const key = `cache:${prefix}:${scope}:${req.originalUrl || req.url}`;
 
-    if (cachedBody) {
-      const parsed = JSON.parse(cachedBody);
-      // Check expiry
-      if (Date.now() < parsed.expiry) {
-        res.setHeader('X-Cache', 'HIT');
-        return res.json(parsed.data);
-      } else {
-        memoryCache.delete(key);
-      }
+    const cachedBody = await cacheGet(key);
+    if (cachedBody !== null) {
+      res.setHeader("X-Cache", "HIT");
+      return res.status(200).json(cachedBody);
     }
 
-    res.setHeader('X-Cache', 'MISS');
-    
-    // Intercept res.json to cache the response
-    const originalJson = res.json;
+    res.setHeader("X-Cache", "MISS");
+
+    const originalJson = res.json.bind(res);
     res.json = (body) => {
-      const cacheData = {
-        data: body,
-        expiry: Date.now() + (durationSeconds * 1000)
-      };
-      memoryCache.set(key, JSON.stringify(cacheData));
-      return originalJson.call(res, body);
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        cacheSet(key, body, durationSeconds).catch(() => {});
+      }
+      return originalJson(body);
     };
 
     next();

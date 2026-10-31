@@ -85,7 +85,13 @@ const RoleplaySession = () => {
         .concat(userMessage)
         .map(m => ({ role: m.role, text: m.content }));
 
-      const response = await playRoleplayTurn(historyPayload);
+      const response = await playRoleplayTurn(historyPayload, {
+        scenario: `${scenario.title} (${scenario.persona})`,
+        targetLanguage:
+          authUser?.learningLanguage && authUser.learningLanguage !== "None"
+            ? authUser.learningLanguage
+            : "English",
+      });
       
       setMessages(prev => [...prev, { 
         id: Date.now() + 1, 
@@ -94,10 +100,15 @@ const RoleplaySession = () => {
       }]);
     } catch (error) {
       console.error("Failed to fetch AI response:", error);
+      const status = error?.response?.status;
+      const errMsg =
+        status === 429
+          ? error?.response?.data?.message || "AI rate limit reached. Please wait before sending another message."
+          : error?.response?.data?.message || "Error: Could not connect to AI. Please try again.";
       setMessages(prev => [...prev, { 
         id: Date.now() + 1, 
         role: 'system', 
-        content: "Error: Could not connect to AI. Please try again." 
+        content: errMsg 
       }]);
     } finally {
       setIsLoading(false);

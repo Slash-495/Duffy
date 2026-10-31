@@ -1,8 +1,10 @@
 import Subscription from "../../models/Subscription.js";
+import { cacheAside, cacheDel } from "../../lib/cache.js";
 
-// Default limits per tier. Hardcoding avoided in the DB by using this dictionary.
 const TIER_LIMITS = {
   FREE: {
+    tier: "FREE",
+    maxWindowAICalls: Number(process.env.AI_RATE_LIMIT_FREE) || 10,
     maxDailyAICalls: 10,
     canCreateClubs: false,
     maxFlashcards: 500,
@@ -10,47 +12,76 @@ const TIER_LIMITS = {
     hasVoiceAnalysis: false,
   },
   PREMIUM: {
-    maxDailyAICalls: 100, // Practically unlimited for most
+    tier: "PREMIUM",
+    maxWindowAICalls: Number(process.env.AI_RATE_LIMIT_PREMIUM) || 60,
+    maxDailyAICalls: 100,
     canCreateClubs: true,
     maxFlashcards: 5000,
     hasAdvancedAnalytics: true,
     hasVoiceAnalysis: true,
   },
   PRO: {
-    maxDailyAICalls: Infinity,
+    tier: "PRO",
+    maxWindowAICalls: Number(process.env.AI_RATE_LIMIT_PRO) || 300,
+    maxDailyAICalls: 1000,
     canCreateClubs: true,
     maxFlashcards: Infinity,
     hasAdvancedAnalytics: true,
     hasVoiceAnalysis: true,
-  }
+  },
 };
+
+const TIER_CACHE_TTL_SECONDS = 300;
+
+function tierCacheKey(userId) {
+  return `cache:tier:${userId.toString()}`;
+}
 
 export class FeatureFlagService {
   /**
-   * Retrieves the feature flag limits for a specific user based on their subscription tier.
+   * Resolves a user's effective subscription tier ("FREE" | "PREMIUM" | "PRO").
+   * Checks active Subscription documents first, falling back to User.role.
    */
-  static async getUserLimits(userId) {
+  static async resolveUserTier(userOrId) {
+    const userId = typeof userOrId === "object" && userOrId?._id ? userOrId._id : userOrId;
+    const roleHint = typeof userOrId === "object" ? userOrId?.role : null;
+
+    if (!userId) return "FREE";
+
     try {
-      const sub = await Subscription.findOne({ userId });
-      const tier = sub && sub.status === 'active' ? sub.tier : 'FREE';
-      
-      const limits = { ...TIER_LIMITS[tier] };
+      const { data: resolvedTier } = await cacheAside(
+        tierCacheKey(userId),
+        TIER_CACHE_TTL_SECONDS,
+        async () => {
+          const sub = await Subscription.findOne({ userId }).lean();
+          if (sub && (sub.status === "active" || sub.status === "trialing")) {
+            if (sub.features?.unlimitedAI) return "PRO";
+            if (TIER_LIMITS[sub.tier]) return sub.tier;
+          }
 
-      // Apply any manual user-specific overrides
-      if (sub && sub.features) {
-        if (sub.features.unlimitedAI) limits.maxDailyAICalls = Infinity;
-      }
+          if (roleHint === "ADMIN") return "PRO";
+          if (roleHint === "PREMIUM" || roleHint === "TEACHER") return "PREMIUM";
+          return "FREE";
+        }
+      );
 
-      return limits;
+      return TIER_LIMITS[resolvedTier] ? resolvedTier : "FREE";
     } catch (error) {
-      console.error("Error in FeatureFlagService:", error);
-      return TIER_LIMITS['FREE']; // Fallback to free tier on error
+      console.warn("[FeatureFlagService] Tier lookup failed, defaulting to FREE:", error.message);
+      return "FREE";
     }
   }
 
-  /**
-   * Check if a user can make an AI call.
-   */
+  static async getUserLimits(userOrId) {
+    const tier = await this.resolveUserTier(userOrId);
+    return { ...TIER_LIMITS[tier] };
+  }
+
+  static async invalidateTierCache(userId) {
+    if (!userId) return;
+    await cacheDel(tierCacheKey(userId));
+  }
+
   static async canMakeAICall(userId, currentUsageCount) {
     const limits = await this.getUserLimits(userId);
     return currentUsageCount < limits.maxDailyAICalls;

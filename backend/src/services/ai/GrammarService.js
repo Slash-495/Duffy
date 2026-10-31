@@ -1,34 +1,60 @@
 import { GeminiAdapter } from "./GeminiAdapter.js";
 import { PromptBuilder } from "./PromptBuilder.js";
+import { buildCacheHashKey, cacheAside } from "../../lib/cache.js";
 
-// Factory pattern to get the configured AI provider
+const AI_REPEATABLE_CACHE_TTL_SECONDS = 86_400; // 24 hours
+
+let cachedAdapter = null;
+let cachedApiKey = null;
+
+// Factory pattern returning a shared GeminiAdapter instance
 export const getAIProvider = () => {
-  // In the future, we can check process.env.AI_PROVIDER (e.g., 'gemini', 'openai')
-  const apiKey = process.env.GEMINI_API_KEY; 
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not defined in environment variables.");
   }
-  return new GeminiAdapter(apiKey);
+  if (!cachedAdapter || cachedApiKey !== apiKey) {
+    cachedAdapter = new GeminiAdapter(apiKey);
+    cachedApiKey = apiKey;
+  }
+  return cachedAdapter;
 };
 
+export function parseJsonFromLLM(rawResponse, label) {
+  try {
+    const cleanJson = rawResponse.replace(/```json/gi, "").replace(/```/g, "").trim();
+    return JSON.parse(cleanJson);
+  } catch {
+    console.error(`Failed to parse ${label} response from AI`);
+    throw new Error("Invalid response format from AI.");
+  }
+}
+
 export class GrammarService {
-  static async check(message, targetLanguage) {
-    const provider = getAIProvider();
-    const { systemPrompt, userPrompt } = PromptBuilder.build("GRAMMAR", { message, targetLanguage });
-    
-    // Using gemini-2.5-flash since it's fast and reliable for JSON output
-    const rawResponse = await provider.generateText(userPrompt, {
-      systemPrompt,
-      model: "gemini-2.5-flash" 
+  static async checkWithCacheMeta(message, targetLanguage = "English") {
+    const cacheKey = buildCacheHashKey("ai:grammar", {
+      message,
+      targetLanguage: String(targetLanguage || "English").toLowerCase(),
     });
 
-    try {
-      // Clean up markdown code blocks if the LLM wraps it in ```json
-      const cleanJson = rawResponse.replace(/```json/g, "").replace(/```/g, "").trim();
-      return JSON.parse(cleanJson);
-    } catch (e) {
-      console.error("Failed to parse Grammar response:", rawResponse);
-      throw new Error("Invalid response format from AI.");
-    }
+    return cacheAside(cacheKey, AI_REPEATABLE_CACHE_TTL_SECONDS, async () => {
+      const provider = getAIProvider();
+      const { systemPrompt, userPrompt } = PromptBuilder.build("GRAMMAR", {
+        message,
+        targetLanguage,
+      });
+
+      const rawResponse = await provider.generateText(userPrompt, {
+        systemPrompt,
+        model: "gemini-2.5-flash",
+      });
+
+      return parseJsonFromLLM(rawResponse, "Grammar");
+    });
+  }
+
+  static async check(message, targetLanguage = "English") {
+    const { data } = await this.checkWithCacheMeta(message, targetLanguage);
+    return data;
   }
 }

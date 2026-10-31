@@ -5,13 +5,35 @@ export const signup = async (signupData) => {
   return response.data;
 };
 
-export const startLesson = async (topic) => {
-  const response = await axiosInstance.post("/learning/lesson/start", { topic });
+export const playRoleplayTurn = async (history, options = {}) => {
+  const response = await axiosInstance.post("/ai/roleplay/turn", {
+    history,
+    ...options,
+  });
   return response.data;
 };
 
-export const playRoleplayTurn = async (history) => {
-  const response = await axiosInstance.post("/ai/roleplay/turn", { history });
+export const evaluatePronunciation = async (payload) => {
+  const response = await axiosInstance.post("/ai/pronunciation", payload);
+  return response.data;
+};
+
+export const checkGrammar = async (message, targetLanguage) => {
+  const response = await axiosInstance.post("/ai/grammar", { message, targetLanguage });
+  return response.data;
+};
+
+export const suggestVocabulary = async (message, targetLanguage) => {
+  const response = await axiosInstance.post("/ai/vocabulary", { message, targetLanguage });
+  return response.data;
+};
+
+export const translateMessage = async (message, sourceLanguage, targetLanguage) => {
+  const response = await axiosInstance.post("/ai/translate", {
+    message,
+    sourceLanguage,
+    targetLanguage,
+  });
   return response.data;
 };
 
@@ -19,6 +41,7 @@ export const login = async (loginData) => {
   const response = await axiosInstance.post("/auth/login", loginData);
   return response.data;
 };
+
 export const logout = async () => {
   const response = await axiosInstance.post("/auth/logout");
   return response.data;
@@ -28,8 +51,7 @@ export const getAuthUser = async () => {
   try {
     const res = await axiosInstance.get("/auth/me");
     return res.data;
-  } catch (error) {
-    console.log("Error in getAuthUser:", error);
+  } catch {
     return null;
   }
 };
@@ -46,18 +68,19 @@ export async function getUserFriends() {
 
 export const getRecommendedUsers = async (filters = {}) => {
   const params = new URLSearchParams();
-  
+
   if (filters.search) params.append("search", filters.search);
   if (filters.nativeLanguage) params.append("nativeLanguage", filters.nativeLanguage);
   if (filters.learningLanguage) params.append("learningLanguage", filters.learningLanguage);
   if (filters.location) params.append("location", filters.location);
+  if (filters.cursor) params.append("cursor", filters.cursor);
+  if (filters.limit) params.append("limit", String(filters.limit));
 
   const res = await axiosInstance.get(`/users?${params.toString()}`);
   const users = res.data?.recommendedUsers;
 
   if (!Array.isArray(users)) {
-    console.error("Expected 'recommendedUsers' to be an array, but got:", users);
-    return []; 
+    return [];
   }
 
   return users;
@@ -68,26 +91,8 @@ export async function getOutgoingFriendReqs() {
   return response.data;
 }
 
-// export async function sendFriendRequest(userId) {
-//   console.log("Sending friend request to:", userId)
-//   const response = await axiosInstance.post(`/users/friend-request/${userId}`);
-//   return response.data;
-// }
 export async function sendFriendRequest(userId) {
-  console.log("Sending friend request to:", userId);
-
-  const token = localStorage.getItem("token"); 
-
-  const response = await axiosInstance.post(
-    `/users/friend-request/${userId}`,
-    {}, // no request body
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
+  const response = await axiosInstance.post(`/users/friend-request/${userId}`, {});
   return response.data;
 }
 
@@ -97,18 +102,24 @@ export async function getFriendRequests() {
 }
 
 export async function acceptFriendRequest(requestId) {
-  const token = localStorage.getItem("token");
-  console.log("Accepting friend request with ID:", requestId);
-  const response = await axiosInstance.put(
-    `/users/friend-request/${requestId}/accept`,
-    {},
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
+  const response = await axiosInstance.put(`/users/friend-request/${requestId}/accept`, {});
+  return response.data;
+}
 
+export async function sendPresenceHeartbeat() {
+  const response = await axiosInstance.post("/users/presence/heartbeat");
+  return response.data;
+}
+
+export async function updatePrivacySettings(settings) {
+  const response = await axiosInstance.put("/users/privacy", settings);
+  return response.data;
+}
+
+export async function getLeaderboard({ period = "weekly", limit = 20, cursor = null } = {}) {
+  const params = new URLSearchParams({ period, limit: String(limit) });
+  if (cursor) params.append("cursor", cursor);
+  const response = await axiosInstance.get(`/leaderboard?${params.toString()}`);
   return response.data;
 }
 
@@ -131,8 +142,12 @@ export const createDeck = async (deckData) => {
   return response.data;
 };
 
-export const getDeckById = async (deckId) => {
-  const response = await axiosInstance.get(`/decks/${deckId}`);
+export const getDeckById = async (deckId, params = {}) => {
+  const qs = new URLSearchParams();
+  if (params.cursor) qs.append("cursor", params.cursor);
+  if (params.limit) qs.append("limit", String(params.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const response = await axiosInstance.get(`/decks/${deckId}${suffix}`);
   return response.data;
 };
 

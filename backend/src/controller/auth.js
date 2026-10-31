@@ -2,11 +2,20 @@ import { upsertStreamUser } from "../lib/stream.js";
 import User from "../models/User.model.js";
 import jwt from "jsonwebtoken";
 import { asyncHandler } from "../middleware/asyncHandler.js";
+import { PresenceService } from "../services/presenceService.js";
+import { LeaderboardService } from "../services/leaderboardService.js";
+import { cacheDel } from "../lib/cache.js";
+import { friendsCacheKey } from "./user.js";
+
+function sanitizeUser(userDoc) {
+  const obj = typeof userDoc.toObject === "function" ? userDoc.toObject() : { ...userDoc };
+  delete obj.password;
+  return obj;
+}
 
 export const signup = asyncHandler(async (req, res) => {
   const { email, password, fullName } = req.body;
 
-  // 1. Basic validation
   if (!email || !fullName || !password) {
     res.status(400);
     throw new Error("All fields are required");
@@ -29,11 +38,9 @@ export const signup = asyncHandler(async (req, res) => {
     throw new Error("Email already exists");
   }
 
-  // 2. Generate random avatar
   const idx = Math.floor(Math.random() * 100) + 1;
   const randomAvatar = `https://avatar.iran.liara.run/public/${idx}.png`;
 
-  // 3. Create user
   const newUser = await User.create({
     email,
     fullName,
@@ -41,7 +48,6 @@ export const signup = asyncHandler(async (req, res) => {
     profilePic: randomAvatar,
   });
 
-  // 4. Stream user setup
   try {
     await upsertStreamUser({
       id: newUser._id.toString(),
@@ -52,23 +58,18 @@ export const signup = asyncHandler(async (req, res) => {
     console.warn("Error in creating Stream User:", error.message);
   }
 
-  // 5. Create JWT
-  const token = jwt.sign(
-    { userId: newUser._id },
-    process.env.JWT_SECRET_KEY,
-    { expiresIn: "7d" }
-  );
+  const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET_KEY, {
+    expiresIn: "7d",
+  });
 
-  // 6. Set JWT cookie
   res.cookie("jwt", token, {
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: 7 * 24 * 60 * 60 * 1000,
     httpOnly: true,
     sameSite: "strict",
     secure: process.env.NODE_ENV === "production",
   });
 
-  // 7. Send success response
-  res.status(201).json({ success: true, user: newUser });
+  res.status(201).json({ success: true, user: sanitizeUser(newUser) });
 });
 
 export const login = asyncHandler(async (req, res) => {
@@ -96,35 +97,57 @@ export const login = asyncHandler(async (req, res) => {
     secure: process.env.NODE_ENV === "production",
   });
 
-  res.status(200).json({ success: true, user });
+  await PresenceService.heartbeat(user);
+
+  res.status(200).json({ success: true, user: sanitizeUser(user) });
 });
 
 export const logout = asyncHandler(async (req, res) => {
-  res.clearCookie("jwt");
+  const token = req.cookies?.jwt;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+      if (decoded?.userId) {
+        await PresenceService.clearPresence(decoded.userId);
+      }
+    } catch {
+      // Ignore expired/invalid token on logout
+    }
+  }
+
+  res.clearCookie("jwt", {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+  });
   res.status(200).json({ success: true, message: "Logout Successful" });
 });
 
 export const onboard = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { fullName, bio, nativeLanguage, learningLanguage, location } = req.body;
+  const { fullName, bio, nativeLanguage, learningLanguage, location, profilePic } = req.body;
 
   if (!fullName || !bio || !nativeLanguage || !learningLanguage || !location) {
     res.status(400);
     throw new Error("All fields are required");
   }
 
-  const updatedUser = await User.findByIdAndUpdate(
-    userId,
-    {
-      fullName,
-      bio,
-      nativeLanguage,
-      learningLanguage,
-      location,
-      isOnboarded: true,
-    },
-    { new: true, runValidators: true }
-  );
+  const updateFields = {
+    fullName,
+    bio,
+    nativeLanguage,
+    learningLanguage,
+    location,
+    isOnboarded: true,
+  };
+  if (profilePic) {
+    updateFields.profilePic = profilePic;
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(userId, updateFields, {
+    new: true,
+    runValidators: true,
+  }).select("-password");
 
   if (!updatedUser) {
     res.status(404);
@@ -140,6 +163,12 @@ export const onboard = asyncHandler(async (req, res) => {
   } catch (streamError) {
     console.warn("Error updating Stream user during onboarding:", streamError.message);
   }
+
+  const friendKeys = (updatedUser.friends || []).map((fid) => friendsCacheKey(fid));
+  await Promise.all([
+    LeaderboardService.invalidateUserSummary(userId),
+    cacheDel(...friendKeys),
+  ]);
 
   res.status(200).json({ success: true, user: updatedUser });
 });

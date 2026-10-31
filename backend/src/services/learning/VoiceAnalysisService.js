@@ -1,40 +1,93 @@
-import { FeatureFlagService } from "../premium/FeatureFlagService.js";
+import { getAIProvider, parseJsonFromLLM } from "../ai/GrammarService.js";
+import { PromptBuilder } from "../ai/PromptBuilder.js";
+import { buildCacheHashKey, cacheAside } from "../../lib/cache.js";
+
+const PRONUNCIATION_CACHE_TTL_SECONDS = 86_400;
 
 /**
- * Architectural Blueprint for Voice Analysis.
- * In a production environment, this would integrate with Deepgram or AssemblyAI SDKs.
+ * Evaluates spoken Web Speech API transcripts using deterministic heuristics + Gemini coaching.
+ * Note: Browser SpeechRecognition produces text transcripts rather than raw acoustic phonemes,
+ * so scores reflect transcript accuracy/fluency and common pronunciation pitfalls.
  */
 export class VoiceAnalysisService {
-  
-  /**
-   * Receives an audio blob, checks if the user has premium voice analysis unlocked,
-   * and routes it to the STT (Speech-to-Text) provider.
-   */
-  static async analyzePronunciation(userId, audioBuffer, targetLanguage) {
-    const limits = await FeatureFlagService.getUserLimits(userId);
-    
-    if (!limits.hasVoiceAnalysis) {
-      throw new Error("Voice Analysis is a Premium feature. Please upgrade to unlock.");
+  static computeHeuristicBaseline(transcript, targetPhrase = "") {
+    const clean = String(transcript || "").trim();
+    if (!clean) {
+      return {
+        transcript: "",
+        pronunciationScore: 0,
+        fluencyScore: 0,
+        mispronouncedWords: [],
+        feedback: "No speech detected. Try speaking closer to the microphone.",
+        evaluationMethod: "heuristic",
+      };
     }
 
-    console.log(`[VoiceAnalysisService] Processing ${audioBuffer.length} bytes of audio for user ${userId} in ${targetLanguage}.`);
+    const words = clean.split(/\s+/).filter(Boolean);
+    const lengthFactor = Math.min(15, words.length * 2);
+    let similarityScore = 80 + lengthFactor;
 
-    // MOCK: This is where we would call Deepgram API to get phoneme-level accuracy.
-    // e.g., const response = await deepgram.transcription.preRecorded({ buffer: audioBuffer, mimetype: 'audio/webm' }, { punctuate: true, language: targetLanguage });
+    if (targetPhrase.trim()) {
+      const targetWords = targetPhrase.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, "").split(/\s+/);
+      const spokenSet = new Set(clean.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, "").split(/\s+/));
+      const matched = targetWords.filter((w) => spokenSet.has(w)).length;
+      similarityScore = Math.round((matched / Math.max(1, targetWords.length)) * 100);
+    }
 
-    // Mocking the return payload that the frontend expects
+    const clampedScore = Math.max(40, Math.min(98, similarityScore));
     return {
-      transcript: "Hola, ¿cómo estás?",
-      pronunciationScore: 85,
-      mispronouncedWords: [
-        { word: "estás", expectedPhoneme: "es-tas", userPhoneme: "es-taw" }
-      ],
-      fluencyScore: 90,
-      timestampedTranscript: [
-        { word: "Hola", start: 0.1, end: 0.5 },
-        { word: "¿cómo", start: 0.6, end: 0.9 },
-        { word: "estás?", start: 1.0, end: 1.5 }
-      ]
+      transcript: clean,
+      pronunciationScore: clampedScore,
+      fluencyScore: Math.max(50, Math.min(98, clampedScore + 3)),
+      mispronouncedWords: [],
+      feedback: "Good clarity. Practice linking words smoothly at a natural pace.",
+      evaluationMethod: "heuristic",
     };
+  }
+
+  static async evaluateTranscriptWithCacheMeta(
+    transcript,
+    targetLanguage = "English",
+    targetPhrase = ""
+  ) {
+    const cleanTranscript = String(transcript || "").trim();
+    if (!cleanTranscript) {
+      return {
+        data: this.computeHeuristicBaseline("", targetPhrase),
+        hit: false,
+      };
+    }
+
+    const cacheKey = buildCacheHashKey("ai:pronunciation", {
+      transcript: cleanTranscript.toLowerCase(),
+      targetLanguage: String(targetLanguage || "English").toLowerCase(),
+      targetPhrase: String(targetPhrase || "").toLowerCase(),
+    });
+
+    return cacheAside(cacheKey, PRONUNCIATION_CACHE_TTL_SECONDS, async () => {
+      try {
+        const provider = getAIProvider();
+        const { systemPrompt, userPrompt } = PromptBuilder.build("PRONUNCIATION_COACH", {
+          transcript: cleanTranscript,
+          targetPhrase,
+          targetLanguage,
+        });
+
+        const rawResponse = await provider.generateText(userPrompt, {
+          systemPrompt,
+          model: "gemini-2.5-flash",
+        });
+
+        const parsed = parseJsonFromLLM(rawResponse, "Pronunciation");
+        return {
+          ...parsed,
+          transcript: parsed.transcript || cleanTranscript,
+          evaluationMethod: "web-speech-gemini-transcript",
+        };
+      } catch (err) {
+        console.warn(`[VoiceAnalysisService] Falling back to heuristic scorer: ${err.message}`);
+        return this.computeHeuristicBaseline(cleanTranscript, targetPhrase);
+      }
+    });
   }
 }

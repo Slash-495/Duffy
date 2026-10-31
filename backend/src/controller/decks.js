@@ -1,6 +1,13 @@
 import Deck from "../models/Deck.js";
 import Flashcard from "../models/Flashcard.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
+import { cacheAside, cacheDel } from "../lib/cache.js";
+
+const DECKS_CACHE_TTL_SECONDS = 300; // 5 minutes
+
+export function decksCacheKey(userId) {
+  return `cache:decks:${userId.toString()}`;
+}
 
 // @desc    Create a new deck
 // @route   POST /api/decks
@@ -18,15 +25,25 @@ export const createDeck = asyncHandler(async (req, res) => {
     tags,
   });
 
+  await cacheDel(decksCacheKey(req.user.id));
+
   res.status(201).json(deck);
 });
 
-// @desc    Get all decks for a user
+// @desc    Get all decks for a user (Redis cache-aside)
 // @route   GET /api/decks
 export const getDecks = asyncHandler(async (req, res) => {
-  const decks = await Deck.find({ userId: req.user.id, isArchived: false }).sort({ updatedAt: -1 });
-  
-  // Optionally, we could aggregate stats here, but we'll cache them in the model for speed
+  const { data: decks, hit } = await cacheAside(
+    decksCacheKey(req.user.id),
+    DECKS_CACHE_TTL_SECONDS,
+    async () => {
+      return Deck.find({ userId: req.user.id, isArchived: false })
+        .sort({ updatedAt: -1 })
+        .lean();
+    }
+  );
+
+  res.setHeader("X-Cache", hit ? "HIT" : "MISS");
   res.status(200).json(decks);
 });
 
@@ -59,6 +76,8 @@ export const updateDeck = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "Deck not found" });
   }
 
+  await cacheDel(decksCacheKey(req.user.id));
+
   res.status(200).json(deck);
 });
 
@@ -71,10 +90,9 @@ export const deleteDeck = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "Deck not found" });
   }
 
-  // Delete all associated flashcards
   await Flashcard.deleteMany({ deckId: deck._id });
-  
   await deck.deleteOne();
+  await cacheDel(decksCacheKey(req.user.id));
 
   res.status(200).json({ message: "Deck and associated cards deleted successfully" });
 });

@@ -4,7 +4,8 @@
   "main": "server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "rebuild:leaderboard": "node src/scripts/rebuildLeaderboard.js"
   },
   "keywords": [],
   "author": "",
@@ -20,6 +21,7 @@
     "duffy2": "file:..",
     "express": "^4.21.0",
     "express-rate-limit": "^8.5.2",
+    "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.13.2",
     "stream-chat": "^8.60.0"

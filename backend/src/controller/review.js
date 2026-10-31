@@ -1,7 +1,8 @@
 import Flashcard from "../models/Flashcard.js";
-import Deck from "../models/Deck.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { calculateNextReview } from "../services/srsService.js";
+import { cacheDel } from "../lib/cache.js";
+import { decksCacheKey } from "./decks.js";
 
 // @desc    Get all due cards for the user (or optionally filtered by deck)
 // @route   GET /api/review/due
@@ -18,9 +19,8 @@ export const getDueCards = asyncHandler(async (req, res) => {
     query.deckId = deckId;
   }
 
-  // Fetch up to 'limit' due cards
   const dueCards = await Flashcard.find(query)
-    .sort({ nextReviewDate: 1 }) // oldest due first
+    .sort({ nextReviewDate: 1 })
     .limit(Number(limit));
 
   res.status(200).json(dueCards);
@@ -29,7 +29,7 @@ export const getDueCards = asyncHandler(async (req, res) => {
 // @desc    Submit a review grade for a flashcard
 // @route   POST /api/review/:id
 export const submitReview = asyncHandler(async (req, res) => {
-  const { quality } = req.body; // 0, 3, 4, 5
+  const { quality } = req.body;
 
   if (quality === undefined || quality < 0 || quality > 5) {
     return res.status(400).json({ message: "Valid review quality (0-5) is required" });
@@ -41,7 +41,6 @@ export const submitReview = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "Flashcard not found" });
   }
 
-  // Calculate new SM-2 values
   const { easeFactor, interval, nextReviewDate } = calculateNextReview(
     quality,
     card.easeFactor,
@@ -49,7 +48,6 @@ export const submitReview = asyncHandler(async (req, res) => {
     card.reviewCount
   );
 
-  // Update card
   card.easeFactor = easeFactor;
   card.interval = interval;
   card.nextReviewDate = nextReviewDate;
@@ -63,9 +61,7 @@ export const submitReview = asyncHandler(async (req, res) => {
   }
 
   await card.save();
-
-  // Optionally update Deck stats (mastered, learning, due) here in the future
-  // For now, we will calculate stats dynamically on the frontend or via aggregation
+  await cacheDel(decksCacheKey(req.user.id));
 
   res.status(200).json(card);
 });
