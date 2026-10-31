@@ -6,27 +6,15 @@ Full-stack language learning platform combining spaced-repetition flashcards, CE
 
 ---
 
-## Screenshots & Demo
+## Screenshots
 
-> Placeholder paths for UI captures — see checklist below.
-
-| Home & Partner Discovery | AI Roleplay & Coaching |
+| Home & Partner Discovery | Learning Hub & Daily Missions |
 | :---: | :---: |
-| ![Home & Partner Discovery](docs/screenshots/home-discovery.png) | ![AI Roleplay Session](docs/screenshots/ai-roleplay.png) |
+| ![Home & Partner Discovery](docs/screenshots/home-discovery.png) | ![Learning Hub & Daily Missions](docs/screenshots/learning-hub.png) |
 
-| Global Leaderboard (Redis Sorted Sets) | Spaced-Repetition Review & Teacher Hub |
+| Immersive AI Roleplay | Global Leaderboard (Redis Sorted Sets) |
 | :---: | :---: |
-| ![Global Leaderboard](docs/screenshots/leaderboard.png) | ![Teacher Classroom Roster](docs/screenshots/teacher-classroom.png) |
-
-**Demo GIF:** `docs/screenshots/duffy-walkthrough.gif`
-
-### Screenshot Capture TODO
-- [ ] `docs/screenshots/home-discovery.png` — Home page showing online presence badges on Friend Cards, language filters, and the right-hand Community Activity feed.
-- [ ] `docs/screenshots/ai-roleplay.png` — Roleplay session with CEFR level selector, Web Speech microphone input, and in-chat AI Grammar/Translation sidebar.
-- [ ] `docs/screenshots/leaderboard.png` — Global Leaderboard displaying Daily / Weekly / All-Time tabs, caller rank highlight bar, and cursor-paginated rankings.
-- [ ] `docs/screenshots/flashcards-srs.png` — Flashcard deck view and SM-2 flip-card review screen (`Again` / `Hard` / `Good` / `Easy` grading).
-- [ ] `docs/screenshots/teacher-classroom.png` — Teacher Hub showing a 6-character classroom join code, student XP/streak roster, CSV export, and assignment creation modal.
-- [ ] `docs/screenshots/duffy-walkthrough.gif` — 20-second loop: check grammar in chat -> complete AI quiz -> watch XP increment on Leaderboard.
+| ![Immersive AI Roleplay](docs/screenshots/ai-roleplay.png) | ![Global Leaderboard](docs/screenshots/leaderboard.png) |
 
 ---
 
