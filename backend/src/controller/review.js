@@ -101,10 +101,6 @@ export const getDueCards = asyncHandler(async (req, res) => {
 export const submitReview = asyncHandler(async (req, res) => {
   const { quality } = req.body;
 
-  if (quality === undefined || quality < 0 || quality > 5) {
-    return res.status(400).json({ message: "Valid review quality (0-5) is required" });
-  }
-
   const card = await Flashcard.findOne({ _id: req.params.id, userId: req.user.id });
 
   if (!card) {

@@ -23,6 +23,7 @@ import { connectRedis } from "./lib/redis.js";
 import { apiLimiter } from "./middleware/rateLimiter.js";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 import { AppError } from "./lib/AppError.js";
+import { logger } from "./lib/logger.js";
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -115,7 +116,7 @@ export { app };
 
 if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, () => {
-    console.log(`Server is running on Port ${PORT}`);
+    logger.info(`Server is running on Port ${PORT}`);
     connectDB();
     connectRedis();
   });

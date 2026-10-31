@@ -23,10 +23,6 @@ export const createFlashcard = asyncHandler(async (req, res) => {
     source,
   } = req.body;
 
-  if (!deckId || !word || !meaning || !language) {
-    return res.status(400).json({ message: "Deck ID, language, word, and meaning are required" });
-  }
-
   const deck = await Deck.findOne({ _id: deckId, userId: req.user.id });
   if (!deck) {
     return res.status(404).json({ message: "Deck not found" });
@@ -108,10 +104,6 @@ export const deleteFlashcard = asyncHandler(async (req, res) => {
 // @route   POST /api/flashcards/import
 export const bulkImportFlashcards = asyncHandler(async (req, res) => {
   const { deckId, cards } = req.body;
-
-  if (!deckId || !cards || !Array.isArray(cards)) {
-    return res.status(400).json({ message: "Deck ID and cards array are required" });
-  }
 
   const deck = await Deck.findOne({ _id: deckId, userId: req.user.id });
   if (!deck) {

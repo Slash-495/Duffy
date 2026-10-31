@@ -20,10 +20,6 @@ export function decksCacheKey(userId) {
 export const createDeck = asyncHandler(async (req, res) => {
   const { name, description, tags } = req.body;
 
-  if (!name) {
-    return res.status(400).json({ message: "Deck name is required" });
-  }
-
   const deck = await Deck.create({
     userId: req.user.id,
     name,

@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import { connectDB } from "../lib/db.js";
 import Lesson from "../models/Lesson.js";
+import { logger } from "../lib/logger.js";
 
 dotenv.config();
 
@@ -55,7 +56,7 @@ const seedLessons = async () => {
     await Lesson.deleteMany({ isPreSeeded: true });
     
     await Lesson.insertMany(standardLessons);
-    console.log("Standard lessons seeded successfully!");
+    logger.info("Standard lessons seeded successfully!");
     
     process.exit(0);
   } catch (error) {

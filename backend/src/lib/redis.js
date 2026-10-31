@@ -1,5 +1,6 @@
 import Redis from "ioredis";
 import dotenv from "dotenv";
+import { logger } from "./logger.js";
 
 dotenv.config();
 
@@ -60,7 +61,7 @@ export async function connectRedis() {
     });
 
     client.on("ready", () => {
-      console.log("[Redis] Connected and ready.");
+      logger.info("[Redis] Connected and ready.");
     });
 
     client.on("error", (err) => {

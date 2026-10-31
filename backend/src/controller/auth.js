@@ -16,22 +16,6 @@ function sanitizeUser(userDoc) {
 export const signup = asyncHandler(async (req, res) => {
   const { email, password, fullName } = req.body;
 
-  if (!email || !fullName || !password) {
-    res.status(400);
-    throw new Error("All fields are required");
-  }
-
-  if (password.length < 6) {
-    res.status(400);
-    throw new Error("Password must be at least 6 characters");
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    res.status(400);
-    throw new Error("Invalid email format");
-  }
-
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     res.status(400);
@@ -74,11 +58,6 @@ export const signup = asyncHandler(async (req, res) => {
 
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-
-  if (!email || !password) {
-    res.status(400);
-    throw new Error("All fields are required");
-  }
 
   const user = await User.findOne({ email }).select("+password");
   if (!user || !(await user.matchPassword(password))) {
@@ -126,11 +105,6 @@ export const logout = asyncHandler(async (req, res) => {
 export const onboard = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const { fullName, bio, nativeLanguage, learningLanguage, location, profilePic } = req.body;
-
-  if (!fullName || !bio || !nativeLanguage || !learningLanguage || !location) {
-    res.status(400);
-    throw new Error("All fields are required");
-  }
 
   const updateFields = {
     fullName,

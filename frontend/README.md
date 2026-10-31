@@ -1,12 +1,47 @@
-# React + Vite
+# Duffy Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React single-page application for the Duffy language learning platform, providing real-time chat, video calling, spaced-repetition flashcards, and AI-powered roleplay and language coaching.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Framework & Tooling:** React 19, Vite 6
+- **Routing & State:** React Router v7, Zustand, TanStack Query v5
+- **Styling & UI:** Tailwind CSS, DaisyUI, Lucide React, Recharts
+- **Chat & Video SDKs:** Stream Chat (`stream-chat-react`), Stream Video (`@stream-io/video-react-sdk`)
+- **HTTP Client:** Axios
 
-## Expanding the ESLint configuration
+## Environment Variables
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Copy `.env.example` to `.env` in the `frontend` directory:
+
+| Variable | Description |
+|---|---|
+| `VITE_STREAM_API_KEY` | Public Stream application key (matches `STREAM_API_KEY` in `backend/.env`). Safe for client bundles. |
+
+## Available Scripts
+
+Run these commands from the `frontend/` directory or with `--prefix frontend`:
+
+- `npm run dev`: Starts Vite dev server with hot module replacement (HMR) at `http://localhost:5173`.
+- `npm run build`: Compiles production assets into `frontend/dist/`.
+- `npm run preview`: Serves the production build locally for verification.
+- `npm run lint`: Runs ESLint over all source files.
+
+## Project Structure
+
+```
+frontend/
+├── public/              # Static assets and icons
+├── src/
+│   ├── components/      # Reusable UI components (AI sidebar, auth patterns, chat, layout)
+│   ├── hooks/           # Custom TanStack Query mutation/query hooks
+│   ├── lib/             # Axios instance and API service functions
+│   ├── pages/           # Route views (Home, Dashboard, Roleplay, Friends, Decks, Classrooms)
+│   ├── store/           # Zustand state stores (auth, learning, theme)
+│   ├── App.jsx          # Route configuration and protected route guards
+│   ├── index.css        # Tailwind directives and DaisyUI styles
+│   └── main.jsx         # Application entry point with providers
+├── index.html           # HTML template
+├── tailwind.config.js   # Tailwind & DaisyUI theme configuration
+└── vite.config.js       # Vite build configuration with proxy
+```
