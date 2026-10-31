@@ -159,7 +159,7 @@ export const aiLimiter = createTierRateLimiter({ namespace: "ai" });
 // General IP-based limiter for public / auth endpoints
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: () => Number(process.env.API_RATE_LIMIT_MAX) || 200,
   message: { success: false, message: "Too many requests from this IP, please try again later." },
   standardHeaders: true,
   legacyHeaders: false,

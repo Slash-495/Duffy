@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "rebuild:leaderboard": "node src/scripts/rebuildLeaderboard.js"
+    "rebuild:leaderboard": "node src/scripts/rebuildLeaderboard.js",
+    "benchmark": "node ../benchmarks/runBenchmarks.js"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +30,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "autocannon": "^8.0.0",
     "nodemon": "^3.1.9"
   }
 }
