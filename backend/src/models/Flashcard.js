@@ -110,9 +110,10 @@ const flashcardSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Compound index for querying due cards efficiently
+// Compound indexes for spaced-repetition due queries and cursor-paginated deck views
 flashcardSchema.index({ userId: 1, nextReviewDate: 1 });
-flashcardSchema.index({ userId: 1, deckId: 1 });
+flashcardSchema.index({ userId: 1, deckId: 1, nextReviewDate: 1 });
+flashcardSchema.index({ deckId: 1, _id: -1 });
 flashcardSchema.index({ word: 'text', meaning: 'text', exampleSentence: 'text' }); // Text search index
 
 const Flashcard = mongoose.model("Flashcard", flashcardSchema);

@@ -1,5 +1,6 @@
 import LearningProfile from "../../models/LearningProfile.js";
 import { LeaderboardService } from "../leaderboardService.js";
+import { ActivityService } from "../activityService.js";
 import { cacheAside, cacheDel } from "../../lib/cache.js";
 
 const PROFILE_CACHE_TTL_SECONDS = 120;
@@ -31,6 +32,8 @@ export class AnalyticsEngine {
       { upsert: true, new: true }
     );
 
+    const previousXp = profile.xp;
+    const previousStreak = profile.currentStreak;
     profile.xp += amount;
 
     const now = new Date();
@@ -58,6 +61,32 @@ export class AnalyticsEngine {
       LeaderboardService.recordXP(userId, amount, now),
       cacheDel(profileCacheKey(userId)),
     ]);
+
+    // Emit real community milestones on streak jumps or XP thresholds
+    const streakMilestones = [3, 7, 14, 30, 100];
+    if (
+      profile.currentStreak !== previousStreak &&
+      streakMilestones.includes(profile.currentStreak)
+    ) {
+      ActivityService.recordActivity({
+        userId,
+        type: "STREAK",
+        content: `reached a ${profile.currentStreak}-day learning streak!`,
+        metadata: { streakDays: profile.currentStreak },
+        visibility: "PUBLIC",
+      }).catch(() => {});
+    } else {
+      const xpThresholds = [100, 250, 500, 1000, 2500, 5000];
+      const crossed = xpThresholds.find((t) => previousXp < t && profile.xp >= t);
+      if (crossed) {
+        ActivityService.recordActivity({
+          userId,
+          type: "LEVEL_UP",
+          content: `passed ${crossed.toLocaleString()} total XP!`,
+          visibility: "PUBLIC",
+        }).catch(() => {});
+      }
+    }
 
     return {
       xp: profile.xp,

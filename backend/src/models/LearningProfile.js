@@ -61,5 +61,7 @@ const learningProfileSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+learningProfileSchema.index({ xp: -1, userId: 1 });
+
 const LearningProfile = mongoose.model("LearningProfile", learningProfileSchema);
 export default LearningProfile;

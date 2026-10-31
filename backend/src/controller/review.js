@@ -1,27 +1,97 @@
+import mongoose from "mongoose";
 import Flashcard from "../models/Flashcard.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { calculateNextReview } from "../services/srsService.js";
 import { cacheDel } from "../lib/cache.js";
 import { decksCacheKey } from "./decks.js";
+import { AppError } from "../lib/AppError.js";
+import { parsePageLimit } from "../lib/pagination.js";
 
-// @desc    Get all due cards for the user (or optionally filtered by deck)
+function encodeDueCursor(card) {
+  if (!card?._id || !card?.nextReviewDate) return null;
+  return Buffer.from(
+    JSON.stringify({
+      nextReviewDate: new Date(card.nextReviewDate).toISOString(),
+      id: card._id.toString(),
+    }),
+    "utf8"
+  ).toString("base64url");
+}
+
+function decodeDueCursor(rawCursor) {
+  if (!rawCursor || typeof rawCursor !== "string") return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(rawCursor, "base64url").toString("utf8"));
+    const date = new Date(parsed?.nextReviewDate);
+    if (
+      !Number.isNaN(date.getTime()) &&
+      parsed?.id &&
+      mongoose.Types.ObjectId.isValid(parsed.id)
+    ) {
+      return {
+        nextReviewDate: date,
+        id: new mongoose.Types.ObjectId(parsed.id),
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// @desc    Get due cards for the user (cursor-paginated, optionally filtered by deck)
 // @route   GET /api/review/due
 export const getDueCards = asyncHandler(async (req, res) => {
-  const { deckId, limit = 50 } = req.query;
+  const { deckId, cursor } = req.query;
+  const limit = parsePageLimit(req.query.limit, 50, 100);
   const now = new Date();
 
-  const query = {
+  const baseFilter = {
     userId: req.user.id,
     nextReviewDate: { $lte: now },
   };
 
   if (deckId) {
-    query.deckId = deckId;
+    if (!mongoose.Types.ObjectId.isValid(deckId)) {
+      throw new AppError("Invalid deckId query parameter", 400);
+    }
+    baseFilter.deckId = deckId;
   }
 
-  const dueCards = await Flashcard.find(query)
-    .sort({ nextReviewDate: 1 })
-    .limit(Number(limit));
+  const decoded = decodeDueCursor(cursor);
+  const query = decoded
+    ? {
+        $and: [
+          baseFilter,
+          {
+            $or: [
+              { nextReviewDate: { $gt: decoded.nextReviewDate } },
+              {
+                nextReviewDate: decoded.nextReviewDate,
+                _id: { $gt: decoded.id },
+              },
+            ],
+          },
+        ],
+      }
+    : baseFilter;
+
+  const docs = await Flashcard.find(query)
+    .sort({ nextReviewDate: 1, _id: 1 })
+    .limit(limit + 1)
+    .lean();
+
+  const hasMore = docs.length > limit;
+  const dueCards = hasMore ? docs.slice(0, limit) : docs;
+  const nextCursor =
+    hasMore && dueCards.length > 0
+      ? encodeDueCursor(dueCards[dueCards.length - 1])
+      : null;
+
+  res.setHeader("X-Has-More", String(hasMore));
+  if (nextCursor) {
+    res.setHeader("X-Next-Cursor", nextCursor);
+  }
 
   res.status(200).json(dueCards);
 });

@@ -7,14 +7,16 @@ import {
 } from "../controller/learning.js";
 import { protectRoute } from "../middleware/auth.js";
 import { aiLimiter } from "../middleware/rateLimiter.js";
+import { validateBody } from "../middleware/validate.js";
+import { awardXPSchema, generateQuizSchema } from "../validators/schemas.js";
 
 const router = express.Router();
 
 router.use(protectRoute);
 
 router.get("/profile", getLearningProfile);
-router.post("/xp", awardXP);
+router.post("/xp", validateBody(awardXPSchema), awardXP);
 router.get("/roadmap", getRoadmap);
-router.post("/quiz", aiLimiter, generateQuiz);
+router.post("/quiz", aiLimiter, validateBody(generateQuizSchema), generateQuiz);
 
 export default router;

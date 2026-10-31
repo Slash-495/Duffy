@@ -32,5 +32,9 @@ const classroomSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Indexes for teacher dashboard and student roster lookups
+classroomSchema.index({ teacherId: 1, _id: -1 });
+classroomSchema.index({ students: 1 });
+
 const Classroom = mongoose.model("Classroom", classroomSchema);
 export default Classroom;

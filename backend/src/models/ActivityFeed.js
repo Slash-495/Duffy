@@ -31,5 +31,9 @@ const activityFeedSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Compound indexes for cursor-paginated friend & community feeds
+activityFeedSchema.index({ userId: 1, visibility: 1, _id: -1 });
+activityFeedSchema.index({ visibility: 1, _id: -1 });
+
 const ActivityFeed = mongoose.model("ActivityFeed", activityFeedSchema);
 export default ActivityFeed;

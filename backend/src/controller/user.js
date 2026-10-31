@@ -4,6 +4,12 @@ import { asyncHandler } from "../middleware/asyncHandler.js";
 import { PresenceService } from "../services/presenceService.js";
 import { cacheAside, cacheDel } from "../lib/cache.js";
 import { LeaderboardService } from "../services/leaderboardService.js";
+import {
+  decodeIdCursor,
+  parsePageLimit,
+  buildCursorPage,
+  encodeIdCursor,
+} from "../lib/pagination.js";
 
 const FRIENDS_CACHE_TTL_SECONDS = 120;
 
@@ -19,15 +25,21 @@ export const getRecommendedUsers = asyncHandler(async (req, res) => {
   const currentUserId = req.user.id;
   const currentUser = req.user;
 
-  const { nativeLanguage, learningLanguage, location, search } = req.query;
+  const { nativeLanguage, learningLanguage, location, search, cursor } = req.query;
+  const limit = parsePageLimit(req.query.limit, 24, 50);
+  const cursorId = decodeIdCursor(cursor);
 
-  const query = {
-    $and: [
-      { _id: { $ne: currentUserId } },
-      { _id: { $nin: currentUser.friends } },
-      { isOnboarded: true },
-    ],
-  };
+  const andClauses = [
+    { _id: { $ne: currentUserId } },
+    { _id: { $nin: currentUser.friends } },
+    { isOnboarded: true },
+  ];
+
+  if (cursorId) {
+    andClauses.push({ _id: { $lt: cursorId } });
+  }
+
+  const query = { $and: andClauses };
 
   if (nativeLanguage) {
     query.nativeLanguage = { $regex: new RegExp(`^${escapeRegex(nativeLanguage)}$`, "i") };
@@ -45,10 +57,16 @@ export const getRecommendedUsers = asyncHandler(async (req, res) => {
     query.fullName = { $regex: new RegExp(escapeRegex(search), "i") };
   }
 
-  const recommendedUsers = await User.find(query).select("-password").lean();
-  const presenceMap = await PresenceService.getPresenceMap(recommendedUsers);
+  const docs = await User.find(query)
+    .sort({ _id: -1 })
+    .limit(limit + 1)
+    .select("-password")
+    .lean();
 
-  const sanitized = recommendedUsers.map((u) => {
+  const { items, pagination } = buildCursorPage(docs, limit);
+  const presenceMap = await PresenceService.getPresenceMap(items);
+
+  const sanitized = items.map((u) => {
     const { privacy, ...rest } = u;
     return {
       ...rest,
@@ -56,10 +74,13 @@ export const getRecommendedUsers = asyncHandler(async (req, res) => {
     };
   });
 
-  res.status(200).json({ recommendedUsers: sanitized });
+  res.status(200).json({ recommendedUsers: sanitized, pagination });
 });
 
 export const getMyFriends = asyncHandler(async (req, res) => {
+  const limit = parsePageLimit(req.query.limit, 50, 100);
+  const cursorId = decodeIdCursor(req.query.cursor);
+
   const { data: rawFriends, hit } = await cacheAside(
     friendsCacheKey(req.user.id),
     FRIENDS_CACHE_TTL_SECONDS,
@@ -75,13 +96,28 @@ export const getMyFriends = asyncHandler(async (req, res) => {
         throw err;
       }
 
-      return user.friends || [];
+      const sorted = [...(user.friends || [])].sort((a, b) =>
+        b._id.toString().localeCompare(a._id.toString())
+      );
+      return sorted;
     }
   );
 
-  // Merge real-time online status via single Redis MGET while respecting privacy.showOnlineStatus
-  const presenceMap = await PresenceService.getPresenceMap(rawFriends);
-  const friendsWithPresence = rawFriends.map((friend) => {
+  let filtered = rawFriends;
+  if (cursorId) {
+    const cursorStr = cursorId.toString();
+    filtered = rawFriends.filter((f) => f._id.toString() < cursorStr);
+  }
+
+  const hasMore = filtered.length > limit;
+  const pageSlice = hasMore ? filtered.slice(0, limit) : filtered;
+  const nextCursor =
+    hasMore && pageSlice.length > 0
+      ? encodeIdCursor(pageSlice[pageSlice.length - 1]._id)
+      : null;
+
+  const presenceMap = await PresenceService.getPresenceMap(pageSlice);
+  const friendsWithPresence = pageSlice.map((friend) => {
     const { privacy, ...safeFriend } = friend;
     return {
       ...safeFriend,
@@ -90,6 +126,10 @@ export const getMyFriends = asyncHandler(async (req, res) => {
   });
 
   res.setHeader("X-Cache", hit ? "HIT" : "MISS");
+  res.setHeader("X-Has-More", String(hasMore));
+  if (nextCursor) {
+    res.setHeader("X-Next-Cursor", nextCursor);
+  }
   res.status(200).json(friendsWithPresence);
 });
 
@@ -179,26 +219,61 @@ export const acceptFriendRequest = asyncHandler(async (req, res) => {
 });
 
 export const getFriendRequests = asyncHandler(async (req, res) => {
-  const incomingReqs = await FriendRequest.find({
+  const limit = parsePageLimit(req.query.limit, 30, 100);
+  const cursorId = decodeIdCursor(req.query.cursor);
+
+  const incomingFilter = {
     recipient: req.user.id,
     status: "pending",
-  }).populate("sender", "fullName profilePic nativeLanguage learningLanguage");
+    ...(cursorId ? { _id: { $lt: cursorId } } : {}),
+  };
 
-  const acceptedReqs = await FriendRequest.find({
+  const acceptedFilter = {
     sender: req.user.id,
     status: "accepted",
-  }).populate("recipient", "fullName profilePic");
+    ...(cursorId ? { _id: { $lt: cursorId } } : {}),
+  };
 
-  res.status(200).json({ incomingReqs, acceptedReqs });
+  const [incomingDocs, acceptedDocs] = await Promise.all([
+    FriendRequest.find(incomingFilter)
+      .sort({ _id: -1 })
+      .limit(limit + 1)
+      .populate("sender", "fullName profilePic nativeLanguage learningLanguage")
+      .lean(),
+    FriendRequest.find(acceptedFilter)
+      .sort({ _id: -1 })
+      .limit(limit)
+      .populate("recipient", "fullName profilePic")
+      .lean(),
+  ]);
+
+  const { items: incomingReqs, pagination } = buildCursorPage(incomingDocs, limit);
+
+  res.status(200).json({ incomingReqs, acceptedReqs: acceptedDocs, pagination });
 });
 
 export const getoutgoingFriendReq = asyncHandler(async (req, res) => {
-  const outgoingRequests = await FriendRequest.find({
+  const limit = parsePageLimit(req.query.limit, 50, 100);
+  const cursorId = decodeIdCursor(req.query.cursor);
+
+  const filter = {
     sender: req.user.id,
     status: "pending",
-  }).populate("recipient", "fullName profilePic nativeLanguage learningLanguage");
+    ...(cursorId ? { _id: { $lt: cursorId } } : {}),
+  };
 
-  res.status(200).json(outgoingRequests);
+  const docs = await FriendRequest.find(filter)
+    .sort({ _id: -1 })
+    .limit(limit + 1)
+    .populate("recipient", "fullName profilePic nativeLanguage learningLanguage")
+    .lean();
+
+  const { items, pagination } = buildCursorPage(docs, limit);
+  res.setHeader("X-Has-More", String(pagination.hasMore));
+  if (pagination.nextCursor) {
+    res.setHeader("X-Next-Cursor", pagination.nextCursor);
+  }
+  res.status(200).json(items);
 });
 
 // @desc    Refresh current user's online presence TTL key
@@ -223,7 +298,7 @@ export const getFriendsPresence = asyncHandler(async (req, res) => {
   res.status(200).json({ statuses });
 });
 
-// @desc    Update privacy settings (online status visibility, activity feed, friend requests)
+// @desc    Update privacy settings
 // @route   PUT /api/users/privacy
 export const updatePrivacySettings = asyncHandler(async (req, res) => {
   const { showOnlineStatus, showActivity, showActivityFeed, allowFriendRequests } = req.body;
@@ -262,7 +337,6 @@ export const updatePrivacySettings = asyncHandler(async (req, res) => {
     await PresenceService.heartbeat(updatedUser);
   }
 
-  // Invalidate cached friend rosters of all connected friends so privacy change takes effect immediately
   const friendKeys = (updatedUser.friends || []).map((fid) => friendsCacheKey(fid));
   await Promise.all([
     cacheDel(...friendKeys),

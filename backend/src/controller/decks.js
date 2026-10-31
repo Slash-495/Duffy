@@ -2,6 +2,12 @@ import Deck from "../models/Deck.js";
 import Flashcard from "../models/Flashcard.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { cacheAside, cacheDel } from "../lib/cache.js";
+import { ActivityService } from "../services/activityService.js";
+import {
+  decodeIdCursor,
+  parsePageLimit,
+  buildCursorPage,
+} from "../lib/pagination.js";
 
 const DECKS_CACHE_TTL_SECONDS = 300; // 5 minutes
 
@@ -27,38 +33,88 @@ export const createDeck = asyncHandler(async (req, res) => {
 
   await cacheDel(decksCacheKey(req.user.id));
 
+  ActivityService.recordActivity({
+    userId: req.user._id,
+    type: "DECK_PUBLISHED",
+    content: `created a new study deck "${deck.name}".`,
+    metadata: { deckId: deck._id },
+    visibility: "PUBLIC",
+  }).catch(() => {});
+
   res.status(201).json(deck);
 });
 
-// @desc    Get all decks for a user (Redis cache-aside)
+// @desc    Get decks for a user (Redis cache-aside on first page, cursor-paginated)
 // @route   GET /api/decks
 export const getDecks = asyncHandler(async (req, res) => {
-  const { data: decks, hit } = await cacheAside(
-    decksCacheKey(req.user.id),
-    DECKS_CACHE_TTL_SECONDS,
-    async () => {
-      return Deck.find({ userId: req.user.id, isArchived: false })
-        .sort({ updatedAt: -1 })
-        .lean();
-    }
-  );
+  const limit = parsePageLimit(req.query.limit, 50, 100);
+  const cursorId = decodeIdCursor(req.query.cursor);
 
-  res.setHeader("X-Cache", hit ? "HIT" : "MISS");
-  res.status(200).json(decks);
+  if (!cursorId && limit === 50) {
+    const { data: cachedPage, hit } = await cacheAside(
+      decksCacheKey(req.user.id),
+      DECKS_CACHE_TTL_SECONDS,
+      async () => {
+        const docs = await Deck.find({ userId: req.user.id, isArchived: false })
+          .sort({ _id: -1 })
+          .limit(limit + 1)
+          .lean();
+        return buildCursorPage(docs, limit);
+      }
+    );
+
+    res.setHeader("X-Cache", hit ? "HIT" : "MISS");
+    res.setHeader("X-Has-More", String(cachedPage.pagination.hasMore));
+    if (cachedPage.pagination.nextCursor) {
+      res.setHeader("X-Next-Cursor", cachedPage.pagination.nextCursor);
+    }
+    return res.status(200).json(cachedPage.items);
+  }
+
+  const filter = { userId: req.user.id, isArchived: false };
+  if (cursorId) {
+    filter._id = { $lt: cursorId };
+  }
+
+  const docs = await Deck.find(filter)
+    .sort({ _id: -1 })
+    .limit(limit + 1)
+    .lean();
+
+  const { items, pagination } = buildCursorPage(docs, limit);
+  res.setHeader("X-Cache", "MISS");
+  res.setHeader("X-Has-More", String(pagination.hasMore));
+  if (pagination.nextCursor) {
+    res.setHeader("X-Next-Cursor", pagination.nextCursor);
+  }
+  res.status(200).json(items);
 });
 
-// @desc    Get a single deck with its cards
+// @desc    Get a single deck with cursor-paginated cards
 // @route   GET /api/decks/:id
 export const getDeckById = asyncHandler(async (req, res) => {
-  const deck = await Deck.findOne({ _id: req.params.id, userId: req.user.id });
+  const deck = await Deck.findOne({ _id: req.params.id, userId: req.user.id }).lean();
 
   if (!deck) {
     return res.status(404).json({ message: "Deck not found" });
   }
 
-  const cards = await Flashcard.find({ deckId: deck._id }).sort({ createdAt: -1 });
+  const limit = parsePageLimit(req.query.limit, 50, 100);
+  const cursorId = decodeIdCursor(req.query.cursor);
 
-  res.status(200).json({ deck, cards });
+  const cardFilter = { deckId: deck._id };
+  if (cursorId) {
+    cardFilter._id = { $lt: cursorId };
+  }
+
+  const cardDocs = await Flashcard.find(cardFilter)
+    .sort({ _id: -1 })
+    .limit(limit + 1)
+    .lean();
+
+  const { items: cards, pagination } = buildCursorPage(cardDocs, limit);
+
+  res.status(200).json({ deck, cards, pagination });
 });
 
 // @desc    Update a deck

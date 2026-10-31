@@ -66,7 +66,7 @@ export async function getUserFriends() {
   return response.data;
 }
 
-export const getRecommendedUsers = async (filters = {}) => {
+export const getRecommendedUsersPage = async (filters = {}) => {
   const params = new URLSearchParams();
 
   if (filters.search) params.append("search", filters.search);
@@ -77,13 +77,17 @@ export const getRecommendedUsers = async (filters = {}) => {
   if (filters.limit) params.append("limit", String(filters.limit));
 
   const res = await axiosInstance.get(`/users?${params.toString()}`);
-  const users = res.data?.recommendedUsers;
+  return {
+    recommendedUsers: Array.isArray(res.data?.recommendedUsers)
+      ? res.data.recommendedUsers
+      : [],
+    pagination: res.data?.pagination || { limit: 24, hasMore: false, nextCursor: null },
+  };
+};
 
-  if (!Array.isArray(users)) {
-    return [];
-  }
-
-  return users;
+export const getRecommendedUsers = async (filters = {}) => {
+  const page = await getRecommendedUsersPage(filters);
+  return page.recommendedUsers;
 };
 
 export async function getOutgoingFriendReqs() {
@@ -184,5 +188,45 @@ export const submitReview = async (cardId, quality) => {
 
 export const importFlashcards = async (deckId, cards) => {
   const response = await axiosInstance.post("/flashcards/import", { deckId, cards });
+  return response.data;
+};
+
+// ----------------------------------------------------
+// Activity Feed & Classrooms API
+// ----------------------------------------------------
+
+export const getActivityFeed = async ({ cursor = null, limit = 8 } = {}) => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (cursor) params.append("cursor", cursor);
+  const response = await axiosInstance.get(`/activity?${params.toString()}`);
+  return response.data;
+};
+
+export const getClassrooms = async ({ cursor = null, limit = 20 } = {}) => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (cursor) params.append("cursor", cursor);
+  const response = await axiosInstance.get(`/classrooms?${params.toString()}`);
+  return response.data;
+};
+
+export const createClassroom = async (payload) => {
+  const response = await axiosInstance.post("/classrooms", payload);
+  return response.data;
+};
+
+export const joinClassroom = async (joinCode) => {
+  const response = await axiosInstance.post("/classrooms/join", { joinCode });
+  return response.data;
+};
+
+export const getClassroomById = async (classroomId, { cursor = null, limit = 25 } = {}) => {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (cursor) params.append("cursor", cursor);
+  const response = await axiosInstance.get(`/classrooms/${classroomId}?${params.toString()}`);
+  return response.data;
+};
+
+export const createAssignment = async (classroomId, payload) => {
+  const response = await axiosInstance.post(`/classrooms/${classroomId}/assignments`, payload);
   return response.data;
 };

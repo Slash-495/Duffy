@@ -38,5 +38,7 @@ const lessonSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+lessonSchema.index({ level: 1, isPreSeeded: 1 });
+
 const Lesson = mongoose.model("Lesson", lessonSchema);
 export default Lesson;
