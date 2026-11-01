@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Flashcard from "../models/Flashcard.js";
+import Deck from "../models/Deck.js";
 import { asyncHandler } from "../middleware/asyncHandler.js";
 import { calculateNextReview } from "../services/srsService.js";
 import { cacheDel } from "../lib/cache.js";
@@ -96,38 +97,91 @@ export const getDueCards = asyncHandler(async (req, res) => {
   res.status(200).json(dueCards);
 });
 
-// @desc    Submit a review grade for a flashcard
+// @desc    Submit a review grade for a flashcard (atomic SM-2 review)
 // @route   POST /api/review/:id
 export const submitReview = asyncHandler(async (req, res) => {
   const { quality } = req.body;
+  const cardId = req.params.id;
+  const userId = req.user.id;
 
-  const card = await Flashcard.findOne({ _id: req.params.id, userId: req.user.id });
+  const card = await Flashcard.findOne({ _id: cardId, userId }).lean();
 
   if (!card) {
-    return res.status(404).json({ message: "Flashcard not found" });
+    return res.status(404).json({ success: false, message: "Flashcard not found" });
   }
 
-  const { easeFactor, interval, nextReviewDate } = calculateNextReview(
+  const now = new Date();
+  const wasDue = !card.nextReviewDate || new Date(card.nextReviewDate) <= now;
+
+  const currentRepetitions =
+    typeof card.repetitions === "number"
+      ? card.repetitions
+      : (card.reviewCount || 0);
+
+  const srs = calculateNextReview(
     quality,
     card.easeFactor,
     card.interval,
-    card.reviewCount
+    currentRepetitions,
+    now
   );
 
-  card.easeFactor = easeFactor;
-  card.interval = interval;
-  card.nextReviewDate = nextReviewDate;
-  card.lastReviewed = new Date();
-  card.reviewCount += 1;
+  // Optimistic locking / atomic write using previously-read nextReviewDate
+  const filter = {
+    _id: card._id,
+    userId,
+    nextReviewDate: card.nextReviewDate,
+  };
 
-  if (quality < 3) {
-    card.wrongCount += 1;
-  } else {
-    card.correctCount += 1;
+  const update = {
+    $set: {
+      easeFactor: srs.easeFactor,
+      interval: srs.interval,
+      repetitions: srs.repetitions,
+      nextReviewDate: srs.nextReviewDate,
+      lastReviewed: now,
+    },
+    $inc: {
+      reviewCount: 1,
+      ...(quality < 3 ? { wrongCount: 1 } : { correctCount: 1 }),
+    },
+  };
+
+  const updatedCard = await Flashcard.findOneAndUpdate(filter, update, {
+    new: true,
+    runValidators: true,
+  });
+
+  if (!updatedCard) {
+    return res.status(409).json({
+      success: false,
+      message: "Conflict: Flashcard was already reviewed or modified concurrently",
+    });
   }
 
-  await card.save();
-  await cacheDel(decksCacheKey(req.user.id));
+  // Update Deck stats consistently
+  if (wasDue) {
+    await Deck.updateOne(
+      { _id: updatedCard.deckId, "stats.dueCards": { $gt: 0 } },
+      { $inc: { "stats.dueCards": -1 } }
+    ).catch(() => {});
+  }
 
-  res.status(200).json(card);
+  const wasMastered = currentRepetitions >= 5;
+  const isNowMastered = srs.repetitions >= 5;
+  if (!wasMastered && isNowMastered) {
+    await Deck.updateOne(
+      { _id: updatedCard.deckId },
+      { $inc: { "stats.masteredCards": 1 } }
+    ).catch(() => {});
+  } else if (wasMastered && !isNowMastered) {
+    await Deck.updateOne(
+      { _id: updatedCard.deckId, "stats.masteredCards": { $gt: 0 } },
+      { $inc: { "stats.masteredCards": -1 } }
+    ).catch(() => {});
+  }
+
+  await cacheDel(decksCacheKey(userId));
+
+  res.status(200).json(updatedCard);
 });

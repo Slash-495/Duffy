@@ -76,7 +76,11 @@ const flashcardSchema = new mongoose.Schema(
       default: false,
     },
 
-    // Spaced Repetition (SM-2 inspired) Fields
+    // Spaced Repetition (SM-2) Fields
+    repetitions: {
+      type: Number,
+      default: 0, // Number of consecutive successful reviews in SM-2
+    },
     reviewCount: {
       type: Number,
       default: 0,

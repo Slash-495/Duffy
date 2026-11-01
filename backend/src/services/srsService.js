@@ -1,51 +1,87 @@
 /**
- * Spaced Repetition System (SRS) Service based on the SM-2 algorithm.
- * 
- * Grades:
+ * Spaced Repetition System (SRS) Service based on standard SM-2 algorithm.
+ *
+ * Grades (quality):
  * 0: Complete blackout / Again
- * 1: Incorrect, but remembered the correct answer after seeing it
- * 2: Incorrect, but the correct answer seemed easy to recall
- * 3: Correct, but required significant effort / Hard
- * 4: Correct, after some hesitation / Good
+ * 1: Incorrect; remembered after seeing answer
+ * 2: Incorrect; where correct response seemed easy to recall
+ * 3: Correct response recalled with serious difficulty / Hard
+ * 4: Correct response after hesitation / Good
  * 5: Perfect response / Easy
- * 
- * We simplify this to 4 buttons for the UI: Again (0), Hard (3), Good (4), Easy (5).
+ *
+ * Standard SM-2 behavior:
+ * - quality < 3 (failure):
+ *     repetitions = 0
+ *     interval = 1 day
+ *     easeFactor = unchanged
+ * - quality >= 3 (success):
+ *     easeFactor = max(1.3, easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02)))
+ *     interval = 1 for repetitions = 0 (first success)
+ *     interval = 6 for repetitions = 1 (second success)
+ *     interval = round(currentInterval * easeFactor) for repetitions >= 2
+ *     repetitions = repetitions + 1
+ *
+ * Pure function accepting an optional "now" Date parameter for deterministic testing.
  */
 
-export const calculateNextReview = (quality, currentEaseFactor, currentInterval, reviewCount) => {
-  let newEaseFactor = currentEaseFactor;
-  let newInterval = currentInterval;
+export const calculateNextReview = (
+  quality,
+  currentEaseFactor = 2.5,
+  currentInterval = 0,
+  repetitions = 0,
+  now = new Date()
+) => {
+  const baseDate = now instanceof Date ? new Date(now.getTime()) : new Date(now);
+  const q = Number(quality);
+  const ef =
+    typeof currentEaseFactor === "number" && !Number.isNaN(currentEaseFactor)
+      ? currentEaseFactor
+      : 2.5;
+  const interval =
+    typeof currentInterval === "number" && !Number.isNaN(currentInterval)
+      ? currentInterval
+      : 0;
+  const reps =
+    typeof repetitions === "number" && !Number.isNaN(repetitions)
+      ? repetitions
+      : 0;
 
-  // 1. Calculate new Ease Factor
-  // EF':=EF+(0.1-(5-q)*(0.08+(5-q)*0.02))
-  newEaseFactor = currentEaseFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
-  
-  if (newEaseFactor < 1.3) {
-    newEaseFactor = 1.3;
-  }
+  let newEaseFactor;
+  let newInterval;
+  let newRepetitions;
 
-  // 2. Calculate new Interval
-  if (quality < 3) {
-    // User failed the card
-    newInterval = 0; 
+  if (q < 3) {
+    // Card failed: reset repetitions count to 0, interval = 1, ease factor UNCHANGED
+    newRepetitions = 0;
+    newInterval = 1;
+    newEaseFactor = ef;
   } else {
-    // User passed the card
-    if (reviewCount === 0 || currentInterval === 0) {
+    // Card passed: update ease factor with standard formula (floor 1.3)
+    const delta = 0.1 - (5 - q) * (0.08 + (5 - q) * 0.02);
+    newEaseFactor = Math.round((ef + delta) * 100) / 100;
+    if (newEaseFactor < 1.3) {
+      newEaseFactor = 1.3;
+    }
+
+    // Interval progression: 1 for first success, 6 for second, then round(interval * EF)
+    if (reps === 0) {
       newInterval = 1;
-    } else if (reviewCount === 1) {
+    } else if (reps === 1) {
       newInterval = 6;
     } else {
-      newInterval = Math.round(currentInterval * newEaseFactor);
+      newInterval = Math.round(interval * newEaseFactor);
     }
+
+    newRepetitions = reps + 1;
   }
 
-  // 3. Calculate next review date
-  const nextReviewDate = new Date();
+  const nextReviewDate = new Date(baseDate.getTime());
   nextReviewDate.setDate(nextReviewDate.getDate() + newInterval);
 
   return {
     easeFactor: newEaseFactor,
     interval: newInterval,
+    repetitions: newRepetitions,
     nextReviewDate,
   };
 };

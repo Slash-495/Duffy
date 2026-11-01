@@ -60,6 +60,8 @@ export const updateFlashcard = asyncHandler(async (req, res) => {
 
   delete updates.easeFactor;
   delete updates.interval;
+  delete updates.repetitions;
+  delete updates.reviewCount;
   delete updates.nextReviewDate;
 
   const card = await Flashcard.findOneAndUpdate(
