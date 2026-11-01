@@ -74,6 +74,31 @@ describe("Auth Endpoints", () => {
       expect(secondRes.body.message).toMatch(/already exists/i);
     });
 
+    it("normalizes email to lowercase on signup preventing duplicate accounts with different casing", async () => {
+      const resUpper = await request(app)
+        .post("/api/auth/signup")
+        .send({
+          fullName: "Case Sensitive User",
+          email: "CaseUser@Example.COM",
+          password: "password123",
+        });
+
+      expect(resUpper.status).toBe(201);
+      expect(resUpper.body.user.email).toBe("caseuser@example.com");
+
+      // Attempting signup with lowercase equivalent returns 400
+      const resLower = await request(app)
+        .post("/api/auth/signup")
+        .send({
+          fullName: "Case User Clone",
+          email: "caseuser@example.com",
+          password: "password456",
+        });
+
+      expect(resLower.status).toBe(400);
+      expect(resLower.body.message).toMatch(/already exists/i);
+    });
+
     it("successfully creates a user and sets an HttpOnly jwt cookie", async () => {
       const res = await request(app)
         .post("/api/auth/signup")
@@ -128,6 +153,19 @@ describe("Auth Endpoints", () => {
       const jwtCookie = cookies.find((c) => c.startsWith("jwt="));
       expect(jwtCookie).toBeDefined();
       expect(jwtCookie).toMatch(/HttpOnly/i);
+    });
+
+    it("allows login with case-insensitive email input", async () => {
+      const res = await request(app)
+        .post("/api/auth/login")
+        .send({
+          email: "LOGINTEST@EXAMPLE.COM",
+          password: "mypassword123",
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.user.email).toBe("logintest@example.com");
     });
 
     it("fails with 401 when password is incorrect", async () => {

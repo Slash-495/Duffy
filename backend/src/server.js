@@ -47,7 +47,36 @@ app.set("trust proxy", 1);
 
 app.use(
   helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      reportOnly: true,
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "blob:",
+          "https://avatar.iran.liara.run",
+          "https://*.stream-io-api.com",
+          "https://*.stream-io-video.com",
+        ],
+        connectSrc: [
+          "'self'",
+          "https://*.stream-io-api.com",
+          "wss://*.stream-io-api.com",
+          "https://*.stream-io-video.com",
+          "wss://*.stream-io-video.com",
+          "https://*.getstream.io",
+        ],
+        mediaSrc: ["'self'", "blob:", "data:"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'self'"],
+      },
+    },
     crossOriginResourcePolicy: { policy: "cross-origin" },
   })
 );

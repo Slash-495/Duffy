@@ -36,4 +36,11 @@ describe("Health Check Endpoint", () => {
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("ok");
   });
+
+  it("sets Content-Security-Policy-Report-Only header via Helmet", async () => {
+    const res = await request(app).get("/health");
+    expect(res.headers["content-security-policy-report-only"]).toBeDefined();
+    expect(res.headers["content-security-policy-report-only"]).toContain("default-src 'self'");
+    expect(res.headers["content-security-policy-report-only"]).toContain("https://*.stream-io-api.com");
+  });
 });
