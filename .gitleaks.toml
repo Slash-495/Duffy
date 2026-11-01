@@ -1,7 +1,10 @@
 title = "Duffy Gitleaks Allowlist"
 
 [allowlist]
-description = "Allowlist placeholder values in example environment files"
+description = "Allowlist placeholder values in example environment files and historical leaked commit"
+commits = [
+  "12f2c604d28b900a4c3db9080e11cb0b829f3d92"
+]
 paths = [
   '''(?i)(^|/)\.env\.example$''',
   '''(?i)backend/\.env\.example$''',

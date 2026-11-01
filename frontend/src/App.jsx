@@ -1,24 +1,26 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import Homepage from './pages/Homepage.jsx';
 import Signuppage from './pages/Signuppage';
 import Loginpage from './pages/Loginpage';
-import Notificationspage from './pages/Notificationspage';
 import Onboardingpage from './pages/Onboardingpage';
-import Chatpage from './pages/Chatpage';
-import Callpage from './pages/Callpage';
-import FlashcardsPage from './pages/FlashcardsPage';
-import DeckDetailsPage from './pages/DeckDetailsPage';
-import ReviewPage from './pages/ReviewPage';
-import LeaderboardPage from './pages/LeaderboardPage';
-import LearningDashboard from './pages/LearningDashboard';
-import RoleplayHub from './pages/RoleplayHub';
-import RoleplaySession from './pages/RoleplaySession';
-import TeacherDashboard from './pages/TeacherDashboard';
-import ClassroomView from './pages/ClassroomView';
-import SettingsPage from './pages/SettingsPage';
-import PremiumPage from './pages/PremiumPage';
-import FriendsPage from './pages/FriendsPage';
-import AICoach from './pages/AICoach';
+
+const Notificationspage = lazy(() => import('./pages/Notificationspage'));
+const Chatpage = lazy(() => import('./pages/Chatpage'));
+const Callpage = lazy(() => import('./pages/Callpage'));
+const FlashcardsPage = lazy(() => import('./pages/FlashcardsPage'));
+const DeckDetailsPage = lazy(() => import('./pages/DeckDetailsPage'));
+const ReviewPage = lazy(() => import('./pages/ReviewPage'));
+const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
+const LearningDashboard = lazy(() => import('./pages/LearningDashboard'));
+const RoleplayHub = lazy(() => import('./pages/RoleplayHub'));
+const RoleplaySession = lazy(() => import('./pages/RoleplaySession'));
+const TeacherDashboard = lazy(() => import('./pages/TeacherDashboard'));
+const ClassroomView = lazy(() => import('./pages/ClassroomView'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const PremiumPage = lazy(() => import('./pages/PremiumPage'));
+const FriendsPage = lazy(() => import('./pages/FriendsPage'));
+const AICoach = lazy(() => import('./pages/AICoach'));
 import { Toaster } from 'react-hot-toast';
 import PageLoader from './components/PageLoader';
 import useAuthUser from './hooks/useAuthUser';
@@ -56,7 +58,8 @@ const App = () => {
 
   return (
     <div className="h-screen" data-theme={theme}>
-      <Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
         <Route
           path="/"
           element={requireAuth(
@@ -215,6 +218,7 @@ const App = () => {
           )}
         />
       </Routes>
+      </Suspense>
       <Toaster />
     </div>
   );
