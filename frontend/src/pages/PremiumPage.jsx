@@ -1,9 +1,7 @@
 import React from 'react';
 import { SparklesIcon, CheckCircle2Icon, ZapIcon, CrownIcon } from 'lucide-react';
-import { useNavigate } from 'react-router';
 
 const PremiumPage = () => {
-  const navigate = useNavigate();
 
   const tiers = [
     {

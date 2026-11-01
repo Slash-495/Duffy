@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 
 const useFlashcardStore = create(
   persist(
-    (set, get) => ({
+    (set) => ({
       activeDeck: null,
       reviewQueue: [],
       

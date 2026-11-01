@@ -1,5 +1,7 @@
 # Duffy
 
+[![CI](https://github.com/Slash-495/Duffy/actions/workflows/ci.yml/badge.svg)](https://github.com/Slash-495/Duffy/actions/workflows/ci.yml)
+
 Full-stack language learning platform combining spaced-repetition flashcards, CEFR-adaptive Gemini AI coaching, Stream video/chat exchange, classroom management, and a Redis sorted-set & cache-aside performance layer.
 
 **Live App:** [https://duffy.onrender.com/](https://duffy.onrender.com/)

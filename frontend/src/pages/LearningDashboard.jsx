@@ -33,7 +33,7 @@ const LearningDashboard = () => {
       // Hardcoded topic for demo. In a real app, this comes from weakTopics.
       const res = await axiosInstance.post('/learning/quiz', { topic: 'Present Simple vs Present Continuous', targetLanguage: 'English' });
       setActiveQuiz(res.data);
-    } catch (error) {
+    } catch {
       toast.error('Failed to generate quiz');
     } finally {
       setGeneratingQuiz(false);

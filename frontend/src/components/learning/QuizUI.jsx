@@ -6,7 +6,7 @@ const QuizUI = ({ quizData, onComplete }) => {
   const [currentQ, setCurrentQ] = useState(0);
   const [selectedOpt, setSelectedOpt] = useState(null);
   const [isAnswered, setIsAnswered] = useState(false);
-  const [score, setScore] = useState(0);
+  const [_score, setScore] = useState(0);
   
   const { awardXP } = useLearningStore();
 

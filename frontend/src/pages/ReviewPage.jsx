@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getDueCards, submitReview, getDeckById } from '../lib/api';
 import { XIcon, CheckIcon, HelpCircleIcon, ArrowRightIcon } from 'lucide-react';
-import useFlashcardStore from '../store/useFlashcardStore';
 
 const ReviewPage = () => {
   const { id: deckId } = useParams();

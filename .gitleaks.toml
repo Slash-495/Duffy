@@ -1,0 +1,9 @@
+title = "Duffy Gitleaks Allowlist"
+
+[allowlist]
+description = "Allowlist placeholder values in example environment files"
+paths = [
+  '''(?i)(^|/)\.env\.example$''',
+  '''(?i)backend/\.env\.example$''',
+  '''(?i)frontend/\.env\.example$'''
+]

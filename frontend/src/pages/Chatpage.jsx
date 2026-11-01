@@ -65,7 +65,7 @@ const Chatpage = () => {
           await currChanel.watch();
           setChatClient(client);
           setChannel(currChanel);
-        } catch (error) {
+        } catch {
           toast.error("Failed to initialize chat. Please try again later.");
         }
         finally {

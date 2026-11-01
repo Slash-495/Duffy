@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 
 const useAIStore = create(
   persist(
-    (set, get) => ({
+    (set) => ({
       // Settings
       isSidebarOpen: false,
       suggestionsEnabled: true,
