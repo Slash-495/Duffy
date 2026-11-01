@@ -5,7 +5,13 @@
   "scripts": {
     "build": "npm --prefix frontend run build",
     "start": "npm run start --prefix backend",
+    "test": "npm --prefix backend test",
     "benchmark": "node benchmarks/runBenchmarks.js"
+  },
+  "config": {
+    "mongodbMemoryServer": {
+      "version": "7.0.24"
+    }
   },
   "keywords": [],
   "author": "",
