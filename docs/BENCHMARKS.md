@@ -17,8 +17,8 @@ Real load-test measurements comparing Duffy's API performance with **Redis OFF**
 | **Error Rate** | `0` non-2xx responses, `0` socket errors, `0` timeouts across all runs |
 
 ### Notes on Methodology
-1. **End-to-End Authenticated Stack:** Every request passes through `helmet`, `cors`, `cookieParser`, `protectRoute` (JWT verification + remote MongoDB Atlas `User.findById`), and route controllers. Consequently, even pure Redis hits include ~95–105 ms of remote MongoDB Atlas network RTT from `protectRoute`. On Render (where app, MongoDB Atlas region, and Redis are co-located in the same cloud region), that auth RTT drops to ~2–5 ms.
-2. **Gemini Quota Constraint (Redis OFF):** Google's `gemini-2.5-flash` Free Tier enforces a strict **5 requests/minute** project quota. For the uncached `POST /api/ai/grammar` baseline (`Redis OFF`), `autocannon` ran `connections: 1, amount: 5` against live Gemini so all 5 requests completed with `200 OK` rather than benchmarking upstream `429` errors. For `Redis ON`, `autocannon` ran sustained concurrency (`connections: 10, duration: 8s`), serving **512 requests** with **zero** repeat Gemini API calls after the initial cache-warming request.
+1. **Leaderboard Baseline Dominated by Remote Atlas RTT:** Every request in the benchmark was executed from a local development machine against a remote MongoDB Atlas cluster over TLS. In the MongoDB fallback mode, computing the leaderboard requires 5–6 sequential database queries (`find().sort().limit()`, total count, caller search, rank count, and multi-document hydration), each incurring a remote WAN round-trip (~95–105 ms each). In Redis mode, Redis is queried locally on loopback while Atlas is queried once for auth. Consequently, the leaderboard improvement reflects avoiding multiple sequential remote Atlas WAN hops from a local machine as well as memory-index efficiency.
+2. **AI Grammar: Cache Hit vs. Cache Miss (Live Gemini Call):** The grammar benchmark does not compare two implementations of the same task; rather, it measures a **cache hit vs. cache miss (live Gemini call)**. Because Google's `gemini-2.5-flash` Free Tier enforces strict rate limits, the uncached baseline (`Redis OFF`) ran 5 serial requests against live Gemini (`p50: 3,707 ms`), whereas the cached mode (`Redis ON`) served repeated requests directly from Redis (`p50: 103 ms`). The throughput gain is a direct consequence of bypassing upstream LLM network calls on repeated inputs, not a like-for-like computation speedup.
 
 ---
 
@@ -41,11 +41,11 @@ Real load-test measurements comparing Duffy's API performance with **Redis OFF**
   - **Throughput:** `10.88 req/s` -> `85.50 req/s` (**7.9x higher req/s**)
   - *Why:* Replaces 5–6 remote MongoDB round-trips per request (`find().sort().limit()`, total `countDocuments`, caller `findOne`, caller rank `countDocuments({ xp: { $gt: callerXp } })`, and `User` + `LearningProfile` hydration) with a single pipelined Redis RTT (`ZREVRANGE` + `ZCARD` + `ZREVRANK` + `ZSCORE` in $O(\log N + K)$) plus a single `MGET` for cached user display summaries.
 
-- **AI Grammar Check (`POST /api/ai/grammar`):**
-  - **p50 latency:** `3,707.17 ms` -> `103.88 ms` (**35.7x faster**, `-97.2%`)
-  - **p95 tail latency:** `4,011.41 ms` -> `326.77 ms` (**12.3x faster**, `-91.9%`)
-  - **Throughput:** `0.27 req/s` -> `64.00 req/s` (**237x higher req/s** on repeated inputs, while consuming **0** upstream LLM tokens on cache hits)
-  - *Why:* Grammar, vocabulary, translation, and transcript pronunciation prompts are deterministic functions of `(normalizedInput, targetLanguage)`. Keying `cache:ai:grammar:<sha256>` with a 24-hour TTL eliminates multi-second LLM inference and protects against upstream Gemini rate-limit exhaustion on repeated phrases and common learner mistakes.
+- **AI Grammar Check (`POST /api/ai/grammar` — Cache Hit vs. Cache Miss):**
+  - **p50 latency:** `3,707.17 ms` (live Gemini call) -> `103.88 ms` (Redis cache hit)
+  - **p95 tail latency:** `4,011.41 ms` -> `326.77 ms`
+  - **Throughput:** `0.27 req/s` (live rate-limited API) -> `64.00 req/s` (cached in-memory responses, consuming **0** upstream LLM tokens on hits)
+  - *Context:* This measures the latency reduction of serving an identical prompt from a local cache versus making an external network call to Gemini 2.5 Flash. It demonstrates effective quota protection on repeated inputs rather than a direct comparison of algorithmic performance.
 
 ---
 
