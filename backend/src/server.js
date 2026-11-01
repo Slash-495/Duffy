@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/user.js";
 import chatRoutes from "./routes/chat.js";
@@ -27,7 +28,8 @@ import { logger } from "./lib/logger.js";
 
 const app = express();
 const PORT = process.env.PORT || 5001;
-const __dirname = path.resolve();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Build explicit CORS allow-list from env vars (comma-separated supported)
 const configuredOrigins = [
@@ -99,8 +101,17 @@ app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/activity", activityRoutes);
 app.use("/api/classrooms", classroomRoutes);
 
-// Serve built SPA when deployed as a single web service (e.g., Render) with frontend/dist built
-const frontendDistPath = path.join(__dirname, "../frontend/dist");
+// Serve built SPA when deployed as a single web service (e.g., Render, Docker) with frontend/dist built
+const potentialDistPaths = [
+  process.env.FRONTEND_DIST_PATH,
+  path.resolve(__dirname, "../../frontend/dist"),
+  path.resolve(process.cwd(), "../frontend/dist"),
+  path.resolve(process.cwd(), "frontend/dist"),
+].filter(Boolean);
+
+const frontendDistPath =
+  potentialDistPaths.find((candidate) => fs.existsSync(path.join(candidate, "index.html"))) ||
+  potentialDistPaths[0];
 const frontendIndexHtml = path.join(frontendDistPath, "index.html");
 if (process.env.NODE_ENV !== "test" && fs.existsSync(frontendIndexHtml)) {
   app.use(express.static(frontendDistPath));
