@@ -1,0 +1,14 @@
+{
+  "name": "duffy-bench",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bench:limiter": "node bench-limiter.js",
+    "bench:degradation": "node bench-degradation.js",
+    "bench:stampede": "node bench-stampede.js",
+    "bench:leaderboard": "node bench-leaderboard.js",
+    "bench:coverage": "npm run test:coverage --prefix ../backend",
+    "bench:all": "node bench-limiter.js && node bench-degradation.js && node bench-stampede.js && node bench-leaderboard.js"
+  }
+}
